@@ -111,7 +111,7 @@ textarea.field{font:inherit;resize:vertical}
 .altsel{width:100%;margin-top:6px;min-height:40px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:.95rem;padding:0 8px}
 .qtyrow{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
 .qbtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--bg);cursor:pointer;font-size:1.1rem;flex:none}
-.qin{width:5.5em;min-height:44px;font-size:1.15rem!important;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;text-align:center}
+.qin{width:7em;min-height:46px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:1.2rem;font-weight:600;text-align:center}
 .qsel{min-height:44px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;padding:0 6px;max-width:11em}
 .calclist li.omitted .nm,.calclist li.omitted>.vals{text-decoration:line-through;color:var(--muted)}
 .omitctl{width:100%;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
@@ -878,15 +878,14 @@ function renderOpt(){
       tx.append(el("strong",null,a.p.n));
       const qr=el("div","qtyrow");
       const setQ=(n,u)=>{ opt.addQty=opt.addQty||{}; opt.addQty[a.p.id]={n:Math.max(0,Math.round(n*100)/100),u}; opt.addOff[a.p.id]=false; render(); };
-      const step=a.q.u==="g"?10:0.5;
-      const mi=el("button","qbtn","−"); mi.type="button"; mi.setAttribute("aria-label","weniger"); mi.onclick=()=>setQ(Math.max(step,a.q.n-step),a.q.u);
       const ni=document.createElement("input"); ni.className="qin"; ni.inputMode="decimal"; ni.value=a.q.u==="g"?String(r0(a.q.n)):fmt(a.q.n); ni.setAttribute("aria-label","Menge");
-      ni.onchange=()=>{ const n=num(ni.value.replace("½",".5")); if(n>0) setQ(n,a.q.u); };
-      const pl=el("button","qbtn","+"); pl.type="button"; pl.setAttribute("aria-label","mehr"); pl.onclick=()=>setQ(a.q.n+step,a.q.u);
+      ni.onchange=()=>{ const n=num(ni.value.replace("½",".5").replace("¼",".25").replace("¾",".75")); if(n>0) setQ(n,a.q.u); else ni.value=a.q.u==="g"?String(r0(a.q.n)):fmt(a.q.n); };
+      ni.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); ni.blur(); } };
+      ni.onfocus=()=>{ setTimeout(()=>ni.select(),0); };
       const us=document.createElement("select"); us.className="qsel"; us.setAttribute("aria-label","Einheit");
       unitsFor(a.p).forEach(([k,t])=>{ const o=el("option",null,t); o.value=k; us.append(o); }); us.value=a.q.u;
       us.onchange=()=>{ const g=a.g; const nu=us.value; let n=1; if(nu==="g") n=r0(g); else if(nu==="stueck") n=Math.max(0.5,Math.round(g/PIECE[a.p.id]*2)/2); else if(nu==="el") n=Math.max(0.5,Math.round(g/spoonEL(a.p)*2)/2); else if(nu==="tl") n=Math.max(1,Math.round(g/(spoonEL(a.p)/3))); else n=Math.max(0.5,Math.round(g/a.p.g*2)/2); setQ(n,nu); };
-      qr.append(mi,ni,pl,us); tx.append(qr);
+      qr.append(ni,us); tx.append(qr);
       tx.append(el("div","vals","= "+r0(a.g)+" g: "+r0(a.v.kcal)+" kcal, +"+fmt(Math.round(a.v.e*10)/10)+" g Eiweiß"+(a.v.b>=0.5?", +"+fmt(Math.round(a.v.b*10)/10)+" g Ballaststoffe":"")));
       row.append(cb,tx); bx.append(row);
     });
