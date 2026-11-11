@@ -115,6 +115,7 @@ textarea.field{font:inherit;resize:vertical}
 .qsel{min-height:44px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;padding:0 6px;max-width:11em}
 .calclist li.omitted .nm,.calclist li.omitted>.vals{text-decoration:line-through;color:var(--muted)}
 .omitctl{width:100%;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
+.warnbox{background:var(--protein-soft);border:2px solid var(--kcal);border-radius:12px;padding:12px 14px;margin:12px 0;font-weight:600}
 .drain{color:var(--muted);font-size:.88rem;display:inline-flex;gap:4px;align-items:center}
 .pot{font-weight:600;color:var(--kcal);margin-top:4px}
 .seg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -208,17 +209,23 @@ textarea.field{font:inherit;resize:vertical}
     <form id="gateForm" class="gate-form">
       <label for="nameInput">Dein Name</label>
       <input id="nameInput" class="field" type="text" autocomplete="given-name" maxlength="40" required>
+      <label for="codeInput">Speicher-Code (optional)</label>
+      <textarea id="codeInput" class="field" rows="2" placeholder="Nur am neuen Gerät: Code vom anderen Gerät hier einfügen" style="padding:10px 14px;min-height:64px"></textarea>
+      <div id="codeMsg" class="goal" role="alert"></div>
       <button class="btn primary" type="submit">Los geht’s</button>
     </form>
     <div id="knownWrap" hidden>
       <p>Oder weiter als:</p>
       <div id="known" class="known-list"></div>
     </div>
+    <p id="emptyHint" class="goal" hidden>Hier ist noch nichts gespeichert. Hast du vorher woanders eingetragen, zum Beispiel in Safari statt in der App am Home-Bildschirm (oder umgekehrt)? Die beiden haben getrennte Speicher. Deine Daten holst du mit der Sicherung (Tab „Gewicht“, ganz unten) herüber.</p>
+    <div id="storeWarnGate" class="warnbox" hidden></div>
   </section>
 
   <div id="app" hidden>
     <h1>Essensplan</h1>
-    <div class="who">Plan von <strong id="whoName"></strong><button type="button" class="linkbtn" id="switch">Person wechseln</button></div>
+    <div id="storeWarn" class="warnbox" hidden></div>
+    <div class="who">Plan von <strong id="whoName"></strong><button type="button" class="linkbtn" id="switch">Person wechseln</button><button type="button" class="linkbtn" id="toCode">Speicher-Code</button></div>
     <div class="tabs" role="tablist">
       <button role="tab" data-v="tag">Tag</button>
       <button role="tab" data-v="woche">Woche</button>
@@ -236,6 +243,7 @@ textarea.field{font:inherit;resize:vertical}
     <section id="v-gewicht" hidden></section>
 
     <p class="note">Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
+    <div class="sync" id="savestate"></div>
     <div class="sync" id="sync"></div>
   </div>
 </main>
@@ -426,7 +434,7 @@ function parseRecipeText(txt, name){
   out.items=Object.values(best);
   return out;
 }
-let opt = {name:"", url:"", cat:"h", kcal:"", e:"", b:"", portions:"4", text:"", items:null, swapOff:{}, adds:null, addOff:{}, calc:null, cook:null, src:"calc", q:"", portionsTouched:false, weight:"", densityChecked:false, swapAlt:{}, omit:{}, detOpen:false, taste:"h", tasteTouched:false, showAllProducts:false, addQty:{}, extras:[], extraMsg:""};
+let opt = {name:"", url:"", cat:"h", kcal:"", e:"", b:"", portions:"4", text:"", items:null, swapOff:{}, adds:null, addOff:{}, calc:null, cook:null, src:"calc", q:"", portionsTouched:false, weight:"", editId:null, densityChecked:false, swapAlt:{}, omit:{}, detOpen:false, taste:"h", tasteTouched:false, showAllProducts:false, addQty:{}, extras:[], extraMsg:""};
 
 function computeOpt(){
   const P=Math.max(1, num(opt.portions)||1);
@@ -482,6 +490,11 @@ function sign(n,u){ const r=Math.round(n); return (r>0?"+":r<0?"−":"±")+Math.
 // [Muster, Name, kcal, Eiweiß, Ballaststoffe je 100 g, Stückgewicht g, Sonderwerte]
 const ZERO = /\b(wasser|salz|pfeffer|paprikapulver|curry|kreuzk[üu]mmel|kurkuma|zimt|garam masala|backpulver|natron|weinstein|muskat|oregano|thymian|majoran|rosmarin|lorbeer|nelke|kardamom|chili(pulver|flocken)?|cayenne|gew[üu]rz|vanille(extrakt|schote)|essig|zitronenschale|eis(w[üu]rfel)?|kr[äa]uter|petersilie|koriander|basilikum|schnittlauch|dill|minze|w[üu]rzpaste|br[üu]he|suppenpulver|fond|hefe|senf|sojaso[ßs]e|sojasauce|knoblauch|ingwer)/i;
 const FOODS = [
+ [/hummus|kichererbsen(creme|aufstrich)/i,"Hummus",250,8,6],
+ [/linsen(aufstrich|creme)/i,"Linsenaufstrich",150,7,5],
+ [/(tomaten|paradeiser|paprika|gem[üu]se|kr[äa]uter)(aufstrich|creme)/i,"Gemüseaufstrich",180,3,2],
+ [/aufstrich/i,"Aufstrich",200,5,2],
+ [/porridge/i,"Porridge (fertig)",110,4,2],
  [/eiklar|eiwei(ß|ss)\b/i,"Eiklar",48,11,0,30],
  [/eigelb|dotter/i,"Eigelb",340,16,0,18],
  [/\beier?\b|\bei\b|eier\s*\(/i,"Ei",140,12.5,0,60],
@@ -737,6 +750,29 @@ function parseExtras(txt){
   return {out, unknown};
 }
 
+function runCalc(keep){
+  const P=Math.max(1,num(opt.portions)||1);
+  const pr=parseRecipeText(opt.text, opt.name);
+  if(!keep && pr.portions && !opt.portionsTouched){ opt.portions=String(pr.portions); }
+  if(!opt.name){ const L=opt.text.split(/\n/).map(x=>x.trim()).filter(Boolean);
+    const first=L.find((x,i)=>x.length>3 && x.length<70 && !QONLY.test(x) && !/portion|personen|kcal|^\d/i.test(x) && !/^(menu|skip|zum|---|meta|title|\[|!)/i.test(x) && !(L[i+1]&&QONLY.test(L[i+1])) && !FOODS.some(f=>f[0].test(x))) || "";
+    opt.name=first.replace(/[#*]/g,"").trim(); }
+  const cr=calcRecipe(opt.text, opt.name);
+  opt.calc={items:cr.items, unknown:cr.unknown, liquids:cr.liquids};
+  if(!keep){ opt.omit={}; opt.drain={}; cr.liquids.forEach((l,i)=>{ if(l.g>=1000 && cr.grain && /wasser/i.test(l.ln)) opt.drain[i]=true; }); }
+  recalcCalc();
+  opt.cook=(pr.kcal!=null&&pr.e!=null)?{kcal:pr.kcal,e:pr.e,b:pr.b==null?null:pr.b}:null;
+  if(!keep || (opt.src==="cook"&&!opt.cook)) opt.src=opt.cook?"cook":"calc";
+  applySrc();
+  opt.items=pr.items;
+  if(!keep){ opt.swapOff={}; opt.swapAlt={}; opt.adds=null; opt.addOff={}; opt.addQty={}; opt.extras=[]; opt.extraMsg=""; if(!opt.tasteTouched) opt.taste=detectTaste(opt.text); }
+}
+function openInRechner(rec){
+  const d=rec.srcData; if(!d) return;
+  Object.assign(opt,{text:d.text||"",name:(d.name||rec.n).replace(/\s*\(leicht\)$/,""),url:d.url||"",cat:d.cat||rec.cat,portions:d.portions||"1",weight:d.weight||"",taste:d.taste||"h",tasteTouched:true,portionsTouched:true,src:d.src||"calc",omit:d.omit||{},drain:d.drain||{},swapOff:d.swapOff||{},swapAlt:d.swapAlt||{},adds:d.adds||null,addOff:d.addOff||{},addQty:d.addQty||{},extras:d.extras||[],extraMsg:"",editId:rec.id,densityChecked:true,detOpen:false});
+  runCalc(true);
+  view="opt"; render(); window.scrollTo(0,0);
+}
 function renderOpt(){
   const v=$("v-opt"); v.innerHTML="";
   const fld=(lab,inp)=>{ const w=el("div"); const l=el("label",null,lab); l.htmlFor=inp.id; w.append(l,inp); return w; };
@@ -751,7 +787,8 @@ function renderOpt(){
   v.append(sf);
   v.append(el("p","goal","Öffnet die Suche in Cookidoo. Dort das Rezept öffnen, Zutaten und Nährwerte markieren, kopieren und unten einfügen."));
 
-  v.append(el("h2",null,"Rezept einfügen und berechnen"));
+  v.append(el("h2",null,opt.editId?"Rezept bearbeiten":"Rezept einfügen und berechnen"));
+  if(opt.editId){ const nb=el("button","linkbtn","Stattdessen ein neues Rezept anfangen"); nb.type="button"; nb.onclick=()=>{ Object.assign(opt,{editId:null,text:"",name:"",url:"",weight:"",calc:null,cook:null,items:null,adds:null,extras:[],portionsTouched:false,tasteTouched:false}); render(); }; v.append(nb); }
   const f=el("div","addform");
   const ta=mk("otext","text","area",{rows:7,placeholder:"Zutatenliste einfügen, z. B.\n400 g Hühnerbrust\n250 g Hokkaidokürbis\n150 g Joghurt\n…"}); ta.style.minHeight="150px"; ta.style.padding="10px 14px";
   const cat=document.createElement("select"); cat.id="ocat"; cat.className="field";
@@ -762,25 +799,8 @@ function renderOpt(){
   tsel.onchange=()=>{ opt.taste=tsel.value; opt.tasteTouched=true; opt.adds=null; if(opt.calc) render(); };
   g2.append(fld("Geschmack (wird erkannt)",tsel));
   const go=el("button","btn primary","Berechnen"); go.type="button";
-  go.onclick=()=>{
-    const P=Math.max(1,num(opt.portions)||1);
-    const pr=parseRecipeText(opt.text, opt.name);
-    if(pr.portions && !opt.portionsTouched){ opt.portions=String(pr.portions); }
-    const P2=Math.max(1,num(opt.portions)||P);
-    if(!opt.name){ const L=opt.text.split(/\n/).map(x=>x.trim()).filter(Boolean);
-      const first=L.find((x,i)=>x.length>3 && x.length<70 && !QONLY.test(x) && !/portion|personen|kcal|^\d/i.test(x) && !/^(menu|skip|zum|---|meta|title|\[|!)/i.test(x) && !(L[i+1]&&QONLY.test(L[i+1])) && !FOODS.some(f=>f[0].test(x))) || "";
-      opt.name=first.replace(/[#*]/g,"").trim(); }
-    const cr=calcRecipe(opt.text, opt.name);
-    opt.calc={items:cr.items, unknown:cr.unknown, liquids:cr.liquids};
-    opt.omit={}; recalcCalc();
-    opt.drain={}; cr.liquids.forEach((l,i)=>{ if(l.g>=1000 && cr.grain && /wasser/i.test(l.ln)) opt.drain[i]=true; });
-    opt.cook=(pr.kcal!=null&&pr.e!=null)?{kcal:pr.kcal,e:pr.e,b:pr.b==null?null:pr.b}:null;
-    opt.src=opt.cook?"cook":"calc";
-    applySrc();
-    opt.items=pr.items; opt.swapOff={}; opt.swapAlt={}; opt.adds=null; opt.addOff={}; opt.addQty={}; opt.extras=[]; opt.extraMsg="";
-    if(!opt.tasteTouched) opt.taste=detectTaste(opt.text);
-    render();
-  };
+  go.onclick=()=>{ opt.editId=opt.editId||null; runCalc(false); render(); };
+
   const wt=mk("ow","weight","text",{inputMode:"decimal",placeholder:"z. B. 1850"});
   wt.addEventListener("change",()=>{ opt.adds=null; if(opt.calc) render(); });
   f.append(fld("Rezepttext",ta), fld("Name",mk("on","name","text")), fld("Link (optional)",mk("ou","url","url")), g2, fld("Fertiges Gericht in g (optional – Topf am Thermomix wiegen)",wt), go);
@@ -932,19 +952,33 @@ function renderOpt(){
   v.append(res);
   v.append(el("p","goal","Energiedichte heißt: Kalorien pro Gramm Essen. Zum Abnehmen soll sie niedrig sein (unter 1,5 kcal/g) – dann wird der Teller voll und satt, bei wenig Kalorien. Am meisten bringt Gemüse fein püriert in Sauce oder Eintopf: mehr Menge, kaum mehr Kalorien, und die Kinder sehen nichts."));
   const act=el("div","meal-actions");
-  const save=(light)=>{
+  const save=(light,asUpdate)=>{
     const base={kcal:num(opt.kcal)||0,e:num(opt.e)||0,b:num(opt.b)||0};
     const vals=light?c.final:base;
     let hint="";
     if(light){ const sw=c.swaps.filter(s=>s.on).map(s=>s.it.label+" → "+s.to); const ad=c.addRows.filter(a=>a.on).map(a=>a.label).concat((opt.extras||[]).filter(x=>x.on!==false).map(x=>x.label)); hint=[sw.length?"Tausch: "+sw.join("; "):"", ad.length?"Dazu: "+ad.join(", "):""].filter(Boolean).join(". "); }
     state.custom=state.custom||[];
     const pwS=portionWeight(); const pg=pwS? Math.round(pwS.g+(light?c.addG:0)) : undefined; const potg=pwS? Math.round(pwS.g) : undefined;
-    state.custom.push({id:"c"+Date.now(), cat:opt.cat, n:(opt.name||"Rezept")+(light?" (leicht)":""), kcal:Math.round(vals.kcal), e:Math.round(vals.e*10)/10, b:Math.round(vals.b*10)/10, pg, potg, url:opt.url, hint});
+    const srcData=JSON.parse(JSON.stringify({text:opt.text,name:opt.name,url:opt.url,cat:opt.cat,portions:opt.portions,weight:opt.weight,taste:opt.taste,src:opt.src,omit:opt.omit,drain:opt.drain,swapOff:opt.swapOff,swapAlt:opt.swapAlt,adds:opt.adds,addOff:opt.addOff,addQty:opt.addQty,extras:opt.extras,light}));
+    const nm=(opt.name||"Rezept").replace(/\s*\(leicht\)$/,"")+(light?" (leicht)":"");
+    const rec={id:"c"+Date.now(), cat:opt.cat, n:nm, kcal:Math.round(vals.kcal), e:Math.round(vals.e*10)/10, b:Math.round(vals.b*10)/10, pg, potg, url:opt.url, hint, srcData};
+    if(asUpdate && opt.editId){ const i=state.custom.findIndex(x=>x.id===opt.editId); if(i>=0){ rec.id=opt.editId; state.custom[i]=rec; } else state.custom.push(rec); }
+    else state.custom.push(rec);
     rebuild(); persist();
   };
-  const s1=el("button","btn primary","Leichte Version speichern"); s1.type="button"; s1.onclick=()=>{ save(true); s1.textContent="Gespeichert"; s1.disabled=true; };
-  const s2=el("button","btn","Original speichern"); s2.type="button"; s2.onclick=()=>{ save(false); s2.textContent="Gespeichert"; s2.disabled=true; };
-  act.append(s1,s2); v.append(act);
+  if(opt.editId && state.custom.some(x=>x.id===opt.editId)){
+    const old=state.custom.find(x=>x.id===opt.editId);
+    v.append(el("p","goal","Du bearbeitest „"+old.n+"“."));
+    const u1=el("button","btn primary","Änderungen speichern (leichte Version)"); u1.type="button"; u1.onclick=()=>{ save(true,true); u1.textContent="Gespeichert"; u1.disabled=true; };
+    const u2=el("button","btn","Änderungen speichern (Original)"); u2.type="button"; u2.onclick=()=>{ save(false,true); u2.textContent="Gespeichert"; u2.disabled=true; };
+    const u3=el("button","btn","Als neues Rezept speichern"); u3.type="button"; u3.onclick=()=>{ save(!!(old.srcData&&old.srcData.light)); u3.textContent="Gespeichert"; u3.disabled=true; };
+    act.append(u1,u2,u3);
+  } else {
+    const s1=el("button","btn primary","Leichte Version speichern"); s1.type="button"; s1.onclick=()=>{ save(true); s1.textContent="Gespeichert"; s1.disabled=true; };
+    const s2=el("button","btn","Original speichern"); s2.type="button"; s2.onclick=()=>{ save(false); s2.textContent="Gespeichert"; s2.disabled=true; };
+    act.append(s1,s2);
+  }
+  v.append(act);
   v.append(el("p","goal","Gespeicherte Rezepte findest du danach im Tab „Tag“ zum Auswählen."));
 }
 function estWeight(){
@@ -1109,6 +1143,7 @@ function mealTotals(m){
   if(!m) return t;
   const r=RBY[m.r];
   if(r){ if(r.kcal==null) t.unknown=true; t.kcal+=(r.kcal||0)*m.p; t.e+=(r.e||0)*m.p; t.b+=(r.b||0)*m.p; }
+  (m.items||[]).forEach(x=>{ t.kcal+=x.kcal||0; t.e+=x.e||0; t.b+=x.b||0; });
   (m.b||[]).forEach(id=>{ const pp=productById(id); if(pp){ const x=pPortion(pp); t.kcal+=x.kcal; t.e+=x.e; t.b+=x.b; return; } const sw=sweetById(id); if(sw){ t.kcal+=sw.kcal; t.e+=sw.e||0; t.b+=sw.b||0; return; } const x=BBY[id]; if(x){ t.kcal+=x.kcal; t.e+=x.e; t.b+=x.b; } });
   return t;
 }
@@ -1176,7 +1211,8 @@ function mealCard(key, sl){
   const mt=mealTotals(m);
   const card=el("section","meal");
   const h=el("h3",null,sl.t);
-  if(m.r||m.b.length) h.append(el("span","pe","≈ "+r0(mt.e)+" g Eiweiß"));
+  const hasItems=(m.items||[]).length>0;
+  if(m.r||m.b.length||hasItems) h.append(el("span","pe","≈ "+r0(mt.e)+" g Eiweiß"));
   card.append(h);
 
   const sel=document.createElement("select"); sel.setAttribute("aria-label",sl.t+": Rezept wählen");
@@ -1190,7 +1226,20 @@ function mealCard(key, sl){
   sel.value=m.r||"";
   sel.onchange=()=>{ const mm=getMeal(key,sl.k,true); mm.r=sel.value; mm.p=(RBY[sel.value]&&unitOf(RBY[sel.value])!=="Portion")?2:1; persist(); render(); };
   card.append(sel);
-  if(!R.length) card.append(el("div","goal","Noch keine Rezepte – leg im Tab „Rechner“ dein erstes an."));
+  if(!R.length) card.append(el("div","goal","Noch keine Rezepte – leg im Tab „Rechner“ dein erstes an, oder trag unten einzelne Sachen ein."));
+  card.append(el("div","chips-cap",m.r?"Dazu noch etwas eintragen:":"Ohne Rezept – einfach hinschreiben, was du isst:"));
+  const itf=el("form","searchrow");
+  const iti=document.createElement("input"); iti.className="field"; iti.placeholder=sl.k==="f"?"z. B. 2 Scheiben Vollkornbrot, 100 g Putenbrust, 1 Tomate":"z. B. 150 g Hühnerbrust, 200 g Brokkoli, 60 g Reis"; iti.setAttribute("aria-label",sl.t+": einzelne Lebensmittel");
+  const itb=el("button","btn primary","Dazu"); itb.type="submit"; itf.append(iti,itb);
+  itf.onsubmit=e=>{ e.preventDefault(); if(!iti.value.trim()) return; const r2=parseExtras(iti.value); const mm=getMeal(key,sl.k,true); mm.items=(mm.items||[]).concat(r2.out.map(x=>({label:x.label,name:x.name,g:Math.round(x.g),kcal:Math.round(x.kcal),e:Math.round(x.e*10)/10,b:Math.round(x.b*10)/10,unsure:x.unsure}))); flashMsg={slot:sl.k,text:r2.unknown.length?"Nicht erkannt: "+r2.unknown.join(", ")+" – anders schreiben oder unter „Meine Produkte“ anlegen.":""}; persist(); render(); };
+  card.append(itf);
+  if(hasItems){
+    const ul=el("ul","calclist");
+    m.items.forEach((x,i)=>{ const li=el("li"); li.append(el("span",null,x.label), el("span","vals",(x.unsure?"ca. ":"")+x.g+" g · "+x.kcal+" kcal · "+fmt(x.e)+" g E"));
+      const rm=el("button","linkbtn","entfernen"); rm.type="button"; rm.onclick=()=>{ const mm=getMeal(key,sl.k,true); mm.items.splice(i,1); persist(); render(); }; li.append(rm); ul.append(li); });
+    card.append(ul);
+  }
+  if(flashMsg.slot===sl.k && flashMsg.text && !(m.r||m.b.length||hasItems)) card.append(el("div","goal",flashMsg.text));
 
   const r=RBY[m.r];
   if(r){
@@ -1218,7 +1267,7 @@ function mealCard(key, sl){
     if(names.length){ const ex=el("div","goal","Früher dazu eingetragen: "+names.join(", ")+" "); const rm=el("button","linkbtn","entfernen"); rm.type="button"; rm.onclick=()=>{ const mm=getMeal(key,sl.k,true); mm.b=[]; persist(); render(); }; ex.append(rm); card.append(ex); }
   }
 
-  if(m.r||m.b.length){
+  if(m.r||m.b.length||hasItems){
     const sum=el("div","sum");
     const st=el("strong",null,"≈ "+r0(mt.e)+" g Eiweiß");
     sum.append(st, document.createTextNode(", "+r0(mt.kcal)+" kcal, "+fmt(mt.b)+" g Ballaststoffe"));
@@ -1227,7 +1276,7 @@ function mealCard(key, sl){
     const act=el("div","meal-actions");
     const cp=el("button","btn","Auch für die nächsten 2 Tage");
     cp.onclick=()=>{
-      for(let i=1;i<=2;i++){ const k=ymd(dateAt(dayOffset+i)); const mm=getMeal(k,sl.k,true); mm.r=m.r; mm.p=m.p; mm.b=(m.b||[]).slice(); }
+      for(let i=1;i<=2;i++){ const k=ymd(dateAt(dayOffset+i)); const mm=getMeal(k,sl.k,true); mm.r=m.r; mm.p=m.p; mm.b=(m.b||[]).slice(); mm.items=(m.items||[]).map(x=>({...x})); }
       flashMsg={slot:sl.k,text:"Für die nächsten 2 Tage eingeplant."}; persist(); render();
     };
     const clr=el("button","btn","Leeren");
@@ -1280,7 +1329,7 @@ function remainingCard(key){
   // eigene Rezepte
   const used=new Set(SLOTS.map(sl=>{ const m=getMeal(key,sl.k,false); return m&&m.r; }).filter(Boolean));
   const own=R.filter(r=>r.kcal!=null && !used.has(r.id)).map(r=>{ let p=1; if(r.kcal>restK*1.1) p=0.5; const x={r,p,kcal:r.kcal*p,e:(r.e||0)*p,b:(r.b||0)*p,d:r.pg?r.kcal/r.pg:null}; return x; }).filter(x=>x.kcal<=restK*1.1).sort((a,b)=>score(b)-score(a)).slice(0,3);
-  const isEmpty=sl=>{ const m=getMeal(key,sl.k,false); return !m||!m.r; };
+  const isEmpty=sl=>{ const m=getMeal(key,sl.k,false); return !m||(!m.r&&!(m.items||[]).length); };
   const h=new Date().getHours(); const pref=h<10?"f":h<15?"m":"a";
   const empty=MAIN_SLOTS.find(sl=>sl.k===pref&&isEmpty(sl)) || MAIN_SLOTS.slice().reverse().find(isEmpty);
   if(own.length){
@@ -1335,7 +1384,8 @@ function renderWoche(){
     MAIN_SLOTS.forEach(s=>{
       const meal=getMeal(k,s.k,false); const r=meal&&RBY[meal.r];
       if(r){ any=true; const ag=agg[r.id]||(agg[r.id]={r,p:0}); ag.p+=meal.p; }
-      mm.append(el("div",null, s.t.slice(0,1)+": "+(r?r.n:"–")));
+      const its=(meal&&meal.items)||[]; if(its.length) any=true;
+      mm.append(el("div",null, s.t.slice(0,1)+": "+(r?r.n:(its.length?its.map(x=>x.name).join(", "):"–"))));
     });
     if(swk) mm.append(el("div",null,"Süßes: "+r0(swk)+" kcal"));
     const p=el("div","p", any? r0(t.e)+" g" : "–"); if(any) p.append(el("small",null,r0(t.kcal)+" kcal"));
@@ -1367,6 +1417,24 @@ function renderWoche(){
 }
 
 /* ---------- Rezepte ---------- */
+let quickEdit=null;
+function quickEditForm(r){
+  const f=el("div","addform"); f.style.marginTop="8px";
+  const fld=(lab,inp)=>{ const w=el("div"); const l=el("label",null,lab); l.htmlFor=inp.id; w.append(l,inp); return w; };
+  const mk=(id,val,dec)=>{ const i=document.createElement("input"); i.id=id+r.id; i.className="field"; i.value=val==null?"":String(val).replace(".",","); if(dec) i.inputMode="decimal"; return i; };
+  const nm=mk("qn",r.n), kc=mk("qk",r.kcal,1), ei=mk("qe",r.e,1), ba=mk("qb",r.b,1), pt=mk("qp",r.potg||"",1), ti=mk("qt",r.hint||"");
+  const cat=document.createElement("select"); cat.className="field"; cat.id="qc"+r.id; [["f","Frühstück"],["h","Mittag- oder Abendessen"]].forEach(([a,b])=>{ const o=el("option",null,b); o.value=a; cat.append(o); }); cat.value=r.cat;
+  const g=el("div","addgrid"); g.append(fld("kcal",kc),fld("Eiweiß g",ei),fld("Ballastst. g",ba));
+  const g2=el("div","addgrid two"); g2.append(fld("Aus dem Topf g/Portion",pt),fld("Mahlzeit",cat));
+  const sb=el("button","btn primary","Speichern"); sb.type="button";
+  sb.onclick=()=>{ const x=state.custom.find(y=>y.id===r.id); if(!x) return; const k=num(kc.value); if(!nm.value.trim()||!(k>=0)) return;
+    const oldPot=x.potg, oldPg=x.pg;
+    Object.assign(x,{n:nm.value.trim(),kcal:Math.round(k),e:num(ei.value)||0,b:num(ba.value)||0,cat:cat.value,hint:ti.value.trim()});
+    const np=num(pt.value); if(np>0){ x.pg=oldPg&&oldPot? Math.round(oldPg-oldPot+np) : Math.round(np); x.potg=Math.round(np); }
+    quickEdit=null; rebuild(); persist(); render(); };
+  f.append(fld("Name",nm),g,g2,fld("Tipp",ti),sb);
+  return f;
+}
 function renderRezepte(){
   const v=$("v-rezepte"); v.innerHTML="";
   [["f","Frühstück"],["h","Mittag- und Abendessen"]].forEach(([c,t])=>{
@@ -1383,6 +1451,13 @@ function renderRezepte(){
       if(r.potg) it.append(el("div","pot","Aus dem Topf: "+r.potg+" g pro Portion"));
       if(r.pg&&r.kcal) it.append(el("div","vals","Energiedichte "+fmt(Math.round(r.kcal/r.pg*100)/100)+" kcal/g ("+densityInfo(r.kcal,r.pg).lvl[0]+")"));
       if(r.hint) it.append(el("div","hint",r.hint));
+      if(r.custom){
+        const eb=el("div","meal-actions");
+        if(r.srcData){ const b1=el("button","btn","Im Rechner bearbeiten"); b1.type="button"; b1.onclick=()=>openInRechner(state.custom.find(x=>x.id===r.id)); eb.append(b1); }
+        const b2=el("button","btn",r.srcData?"Nur Werte ändern":"Bearbeiten"); b2.type="button"; b2.onclick=()=>{ quickEdit=quickEdit===r.id?null:r.id; render(); }; eb.append(b2);
+        it.append(eb);
+        if(quickEdit===r.id) it.append(quickEditForm(r));
+      }
       if(r.custom){ const d=el("button","linkbtn","Rezept entfernen"); d.onclick=()=>{ if(!confirm("„"+r.n+"“ entfernen?")) return; state.custom=state.custom.filter(c=>c.id!==r.id); rebuild(); persist(); render(); }; it.append(d); }
       box.append(it);
     });
@@ -1522,11 +1597,18 @@ function renderTraining(){
 }
 
 /* ---------- Sicherung / anderes Gerät ---------- */
-function backupCode(){ const json=JSON.stringify({v:1, profile, state}); return "EP1:"+btoa(unescape(encodeURIComponent(json))); }
-function readBackup(txt){
+function b64urlFromBytes(u8){ let bin=""; for(let i=0;i<u8.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000)); return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function bytesFromB64url(s2){ s2=s2.replace(/\s+/g,"").replace(/-/g,"+").replace(/_/g,"/"); while(s2.length%4) s2+="="; const bin=atob(s2); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+async function backupCode(){
+  const json=JSON.stringify({v:1, profile, state});
+  try{ if(typeof CompressionStream==="function"){ const cs=new Blob([json]).stream().pipeThrough(new CompressionStream("deflate-raw")); const buf=new Uint8Array(await new Response(cs).arrayBuffer()); return "EP2:"+b64urlFromBytes(buf); } }catch(e){}
+  return "EP1:"+btoa(unescape(encodeURIComponent(json)));
+}
+async function readBackup(txt){
   txt=String(txt||"").trim();
   let json;
-  if(txt.startsWith("EP1:")) json=decodeURIComponent(escape(atob(txt.slice(4).replace(/\s+/g,""))));
+  if(txt.startsWith("EP2:")){ const ds=new Blob([bytesFromB64url(txt.slice(4))]).stream().pipeThrough(new DecompressionStream("deflate-raw")); json=await new Response(ds).text(); }
+  else if(txt.startsWith("EP1:")) json=decodeURIComponent(escape(atob(txt.slice(4).replace(/\s+/g,""))));
   else json=txt;
   const d=JSON.parse(json);
   if(!d||!d.state) throw new Error("kein Backup");
@@ -1537,15 +1619,15 @@ function applyBackup(d){
   state=normalize(d.state); rebuild(); persist(); if(remote) flush(); render(); return true;
 }
 function renderBackup(v){
-  v.append(el("h2",null,"Auf anderes Gerät übertragen"));
+  const hh=el("h2",null,"Speicher-Code für ein anderes Gerät"); hh.id="backup"; v.append(hh);
   v.append(el("p","goal","Jedes Gerät (und am iPhone auch die App am Home-Bildschirm) speichert für sich. So nimmst du deinen Plan, dein Gewicht, deine Rezepte und dein Training mit: hier eine Sicherung erstellen, auf dem anderen Gerät einfügen."));
   const f=el("div","addform");
   const r1=el("div","meal-actions");
-  const cp=el("button","btn primary","Sicherung kopieren"); cp.type="button";
+  const cp=el("button","btn primary","Speicher-Code kopieren"); cp.type="button";
   const fl=el("button","btn","Als Datei speichern"); fl.type="button";
   r1.append(cp,fl);
   const msg=el("div","flash","");
-  cp.onclick=async()=>{ const code=backupCode();
+  cp.onclick=async()=>{ const code=await backupCode();
     try{ await navigator.clipboard.writeText(code); msg.textContent="Kopiert – jetzt z. B. per AirDrop, Nachricht oder Mail ans andere Gerät schicken und dort einfügen."; }
     catch(e){ ta.value=code; ta.select(); msg.textContent="Der Code steht unten im Feld – lange drücken, „Alles auswählen“, „Kopieren“."; } };
   fl.onclick=()=>{ try{ const blob=new Blob([JSON.stringify({v:1,profile,state})],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="essensplan-sicherung-"+slug(profile)+"-"+ymd(new Date())+".json"; document.body.append(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); msg.textContent="Datei gespeichert (am iPhone unter „Dateien“)."; }catch(e){ msg.textContent="Speichern als Datei geht hier nicht – nimm „Sicherung kopieren“."; } };
@@ -1554,8 +1636,8 @@ function renderBackup(v){
   const ap=el("button","btn primary","Sicherung übernehmen"); ap.type="button";
   const fi=document.createElement("input"); fi.type="file"; fi.accept=".json,application/json"; fi.hidden=true;
   const fb=el("button","btn","Datei laden"); fb.type="button"; fb.onclick=()=>fi.click();
-  ap.onclick=()=>{ try{ const d=readBackup(ta.value); if(applyBackup(d)) alert("Sicherung übernommen."); }catch(e){ msg.textContent="Das ist keine gültige Sicherung. Bitte den ganzen Code einfügen."; } };
-  fi.onchange=()=>{ const file=fi.files&&fi.files[0]; if(!file) return; file.text().then(t=>{ try{ if(applyBackup(readBackup(t))) alert("Sicherung übernommen."); }catch(e){ msg.textContent="Die Datei ist keine gültige Sicherung."; } }); };
+  ap.onclick=async()=>{ try{ const d=await readBackup(ta.value); if(applyBackup(d)) alert("Sicherung übernommen."); }catch(e){ msg.textContent="Das ist kein gültiger Speicher-Code. Bitte den ganzen Code einfügen."; } };
+  fi.onchange=()=>{ const file=fi.files&&fi.files[0]; if(!file) return; file.text().then(async t=>{ try{ if(applyBackup(await readBackup(t))) alert("Sicherung übernommen."); }catch(e){ msg.textContent="Die Datei ist keine gültige Sicherung."; } }); };
   r2.append(ap,fb);
   f.append(r1, ta, r2, fi, msg); v.append(f);
 }
@@ -1628,15 +1710,32 @@ function render(){
 document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{ view=b.dataset.v; render(); }));
 
 function setSync(t){ $("sync").textContent=t; }
+let storeOK=true, envInfo={inApp:false,standalone:false,claude:false};
+function checkStorage(){
+  try{ const k="__ep_test"; localStorage.setItem(k,"1"); storeOK=localStorage.getItem(k)==="1"; localStorage.removeItem(k); }catch(e){ storeOK=false; }
+  try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
+  const ua=navigator.userAgent||"";
+  envInfo={ inApp:/FBAN|FBAV|Instagram|WhatsApp|Line\/|OneDrive|Teams|Outlook|MicroMessenger|; wv\)/i.test(ua),
+    standalone:(navigator.standalone===true)||!!(window.matchMedia&&matchMedia("(display-mode: standalone)").matches),
+    claude:/claude/.test(location.hostname) };
+  let msg="";
+  if(!storeOK) msg="Achtung: Hier kann nichts dauerhaft gespeichert werden (privates Surfen oder ein Browser innerhalb einer anderen App). Öffne die Seite direkt in Safari bzw. Chrome oder über das App-Symbol am Home-Bildschirm.";
+  else if(envInfo.inApp) msg="Achtung: Du hast die Seite aus einer anderen App heraus geöffnet (z. B. Mail, WhatsApp, Teams oder OneDrive). Dort gehen Eingaben oft verloren. Öffne sie direkt in Safari bzw. Chrome oder über das App-Symbol.";
+  ["storeWarn","storeWarnGate"].forEach(id=>{ const b=$(id); if(b){ b.textContent=msg; b.hidden=!msg; } });
+}
+function showSaved(){
+  const t=new Date(); const where=envInfo.claude?"auf diesem Gerät":(envInfo.standalone?"auf diesem Gerät (App am Home-Bildschirm)":"auf diesem Gerät (in diesem Browser)");
+  $("savestate").textContent = storeOK ? "Gespeichert "+where+" unter „"+profile+"“, "+pad(t.getHours())+":"+pad(t.getMinutes())+" Uhr" : "Nicht gespeichert – siehe Hinweis oben.";
+}
 function persist(){
-  try{ localStorage.setItem(lsKey(), JSON.stringify(state)); }catch(e){}
+  try{ localStorage.setItem(lsKey(), JSON.stringify(state)); showSaved(); }catch(e){ storeOK=false; checkStorage(); showSaved(); }
   if(!remote) return;
   clearTimeout(saveTimer); saveTimer=setTimeout(flush,700);
 }
 async function flush(){
   if(saving){ pending=true; return; }
   saving=true; setSync("Speichert …");
-  try{ await remote.set(JSON.parse(JSON.stringify(state))); setSync("Gespeichert"); }
+  try{ await remote.set(JSON.parse(JSON.stringify(state))); setSync("Auch in deinem Claude-Konto gespeichert – auf jedem Gerät abrufbar"); }
   catch(e){ setSync("Nur auf diesem Gerät gespeichert"); }
   saving=false;
   if(pending){ pending=false; flush(); }
@@ -1686,10 +1785,25 @@ function showGate(){
   const list=$("known"); list.innerHTML="";
   p.names.forEach(n=>{ const b=el("button","btn",n); b.type="button"; b.onclick=()=>startProfile(n); list.append(b); });
   $("knownWrap").hidden=!p.names.length;
+  $("emptyHint").hidden=!!p.names.length;
   $("app").hidden=true; $("gate").hidden=false; $("nameInput").value="";
 }
-$("gateForm").addEventListener("submit",e=>{ e.preventDefault(); const v=$("nameInput").value.trim(); if(v) startProfile(v); });
+$("gateForm").addEventListener("submit",async e=>{ e.preventDefault();
+  const v=$("nameInput").value.trim(); if(!v) return;
+  const code=$("codeInput").value.trim(); $("codeMsg").textContent="";
+  if(!code){ startProfile(v); return; }
+  let d; try{ d=await readBackup(code); }catch(err){ $("codeMsg").textContent="Dieser Speicher-Code ist ungültig oder unvollständig. Bitte den ganzen Code einfügen."; return; }
+  if(d.profile && slug(d.profile)!==slug(v)){ $("codeMsg").textContent="Dieser Code gehört zu „"+d.profile+"“. Bitte genau diesen Namen eingeben."; return; }
+  let had=false; try{ const raw=localStorage.getItem(LS_KEY+":"+slug(v)); had=!!raw && raw.length>60; }catch(err){}
+  if(had && !confirm("Auf diesem Gerät gibt es schon Daten für „"+v+"“. Mit dem Stand aus dem Code ersetzen?")){ startProfile(v); return; }
+  try{ localStorage.setItem(LS_KEY+":"+slug(v), JSON.stringify(normalize(d.state))); }catch(err){}
+  $("codeInput").value="";
+  await startProfile(v);
+  state=normalize(d.state); rebuild(); persist(); if(remote) flush(); render();
+  alert("Dein Stand wurde übernommen.");
+});
 $("switch").addEventListener("click",showGate);
+$("toCode").addEventListener("click",()=>{ view="gewicht"; render(); const h=$("backup"); if(h&&h.scrollIntoView) h.scrollIntoView({behavior:"smooth"}); });
 async function loadRecipeFile(){
   try{
     const res=await fetch("rezepte.json",{cache:"no-store"});
@@ -1704,6 +1818,7 @@ async function loadRecipeFile(){
 rebuild();
 loadRecipeFile();
 try{ if("serviceWorker" in navigator && location.protocol==="https:" && !/claude/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){}
+checkStorage();
 const initP=readProfiles();
 if(initP.last) startProfile(initP.last); else showGate();
 })();
