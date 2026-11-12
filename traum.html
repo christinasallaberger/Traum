@@ -116,6 +116,10 @@ textarea.field{font:inherit;resize:vertical}
 .calclist li.omitted .nm,.calclist li.omitted>.vals{text-decoration:line-through;color:var(--muted)}
 .omitctl{width:100%;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .warnbox{background:var(--protein-soft);border:2px solid var(--kcal);border-radius:12px;padding:12px 14px;margin:12px 0;font-weight:600}
+.manualdet{margin-top:10px}
+.manualdet summary{cursor:pointer;color:var(--protein);font-weight:600;padding:6px 0}
+.addgrid.four{grid-template-columns:repeat(2,1fr)}
+@media (min-width:520px){.addgrid.four{grid-template-columns:repeat(4,1fr)}}
 .drain{color:var(--muted);font-size:.88rem;display:inline-flex;gap:4px;align-items:center}
 .pot{font-weight:600;color:var(--kcal);margin-top:4px}
 .seg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -1058,6 +1062,37 @@ function renderProducts(v){
 
 const SLOTS = [{k:"f",t:"Frühstück"},{k:"m",t:"Mittagessen"},{k:"a",t:"Abendessen"},{k:"s",t:"Snack & Süßes",snack:true}];
 const MAIN_SLOTS = SLOTS.filter(x=>!x.snack);
+function itemLine(x){ return x.manual ? x.kcal+" kcal · "+fmt(x.e)+" g E"+(x.f!=null?" · "+fmt(x.f)+" g Fett":"")+(x.b?" · "+fmt(x.b)+" g Bst":"") : (x.unsure?"ca. ":"")+x.g+" g · "+x.kcal+" kcal · "+fmt(x.e)+" g E"; }
+function manualForm(key, slotK){
+  const det=document.createElement("details"); det.className="manualdet";
+  if(manualOpen===key+slotK) det.open=true;
+  det.addEventListener("toggle",()=>{ manualOpen=det.open?key+slotK:(manualOpen===key+slotK?null:manualOpen); });
+  const sm=document.createElement("summary"); sm.textContent="Eigene Werte eingeben (z. B. von der Packung)"; det.append(sm);
+  const f=el("form","addform"); f.style.marginTop="8px";
+  const fld=(lab,inp)=>{ const w=el("div"); const l=el("label",null,lab); l.htmlFor=inp.id; w.append(l,inp); return w; };
+  const mk=(id,ph)=>{ const i=document.createElement("input"); i.id=id+key+slotK; i.className="field"; i.inputMode="decimal"; if(ph) i.placeholder=ph; return i; };
+  const nm=document.createElement("input"); nm.id="mn"+key+slotK; nm.className="field"; nm.placeholder="z. B. Joghurt aus der Kantine";
+  const kc=mk("mk"), ei=mk("me"), fe=mk("mf"), ba=mk("mb");
+  const g=el("div","addgrid four"); g.append(fld("kcal",kc),fld("Eiweiß g",ei),fld("Fett g",fe),fld("Ballastst. g",ba));
+  const sb=el("button","btn primary","Dazu"); sb.type="submit";
+  const msg=el("div","goal","");
+  f.append(fld("Bezeichnung (optional)",nm), g, sb, msg);
+  f.onsubmit=e=>{ e.preventDefault();
+    const k=num(kc.value), ee=num(ei.value), ff=num(fe.value), bb=num(ba.value);
+    if(!(k>=0) || kc.value.trim()===""){ msg.textContent="Bitte mindestens die Kalorien eintragen."; kc.focus(); return; }
+    const mm=getMeal(key,slotK,true); mm.items=mm.items||[];
+    mm.items.push({manual:true, label:nm.value.trim()||"Eigene Werte", name:nm.value.trim()||"Eigene Werte", g:0, kcal:Math.round(k), e:isNaN(ee)?0:Math.round(ee*10)/10, f:isNaN(ff)?null:Math.round(ff*10)/10, b:isNaN(bb)?0:Math.round(bb*10)/10});
+    manualOpen=null; persist(); render(); };
+  det.append(f);
+  return det;
+}
+function itemsList(key, slotK, m){
+  const ul=el("ul","calclist");
+  m.items.forEach((x,i)=>{ const li=el("li"); li.append(el("span",null,x.label), el("span","vals",itemLine(x)));
+    const rm=el("button","linkbtn","entfernen"); rm.type="button"; rm.onclick=()=>{ const mm=getMeal(key,slotK,true); mm.items.splice(i,1); persist(); render(); }; li.append(rm); ul.append(li); });
+  return ul;
+}
+let manualOpen=null;
 /* ---------- Süßes ---------- */
 const SWEETS = [
   {id:"sw_skyrschoko", n:"Schoko-Skyr (250 g Skyr, Kakao, etwas Süße)", kcal:200, e:28, b:3, fit:1},
@@ -1084,7 +1119,7 @@ function snackCard(key){
   const m=getMeal(key,"s",false)||{r:"",p:1,b:[]};
   const mt=mealTotals(m), sk=sweetKcal(key);
   const card=el("section","meal");
-  const h=el("h3",null,"Snack & Süßes"); if(m.b.length) h.append(el("span","pe",r0(mt.kcal)+" kcal")); card.append(h);
+  const h=el("h3",null,"Snack & Süßes"); if(m.b.length||(m.items||[]).length) h.append(el("span","pe",r0(mt.kcal)+" kcal")); card.append(h);
   const mtr=el("div","meter"); const top=el("div","top"); top.append(el("span",null,"Süß-Budget heute"), el("strong",null,r0(sk)+" von "+T.sweet+" kcal"));
   const tr=el("div","track"); const f=el("div","fill"); f.style.width=Math.min(sk/T.sweet*100,100)+"%"; f.style.background=sk>T.sweet?"var(--fiber)":"var(--kcal)"; tr.append(f);
   mtr.append(top,tr); card.append(mtr);
@@ -1103,7 +1138,9 @@ function snackCard(key){
   const ab=el("button","btn","Dazu"); ab.type="button";
   ab.onclick=()=>{ const k=num(kc.value); if(!nm.value.trim()||!(k>0)) { kc.focus(); return; } state.sweets=state.sweets||[]; const id="swc"+Date.now(); state.sweets.push({id,n:nm.value.trim(),kcal:Math.round(k),e:0,b:0}); const mm=getMeal(key,"s",true); mm.b.push(id); persist(); render(); };
   add.append(nm,kc,ab); card.append(el("div","chips-cap","Eigenes Süßes (bleibt dann zum Antippen gespeichert):"), add);
-  if(m.b.length){ const act=el("div","meal-actions"); const clr=el("button","btn","Leeren"); clr.onclick=()=>{ if(state.days[key]) delete state.days[key].s; persist(); render(); }; act.append(clr); card.append(act); }
+  card.append(manualForm(key,"s"));
+  if((m.items||[]).length) card.append(itemsList(key,"s",m));
+  if(m.b.length||(m.items||[]).length){ const act=el("div","meal-actions"); const clr=el("button","btn","Leeren"); clr.onclick=()=>{ if(state.days[key]) delete state.days[key].s; persist(); render(); }; act.append(clr); card.append(act); }
   return card;
 }
 
@@ -1233,12 +1270,8 @@ function mealCard(key, sl){
   const itb=el("button","btn primary","Dazu"); itb.type="submit"; itf.append(iti,itb);
   itf.onsubmit=e=>{ e.preventDefault(); if(!iti.value.trim()) return; const r2=parseExtras(iti.value); const mm=getMeal(key,sl.k,true); mm.items=(mm.items||[]).concat(r2.out.map(x=>({label:x.label,name:x.name,g:Math.round(x.g),kcal:Math.round(x.kcal),e:Math.round(x.e*10)/10,b:Math.round(x.b*10)/10,unsure:x.unsure}))); flashMsg={slot:sl.k,text:r2.unknown.length?"Nicht erkannt: "+r2.unknown.join(", ")+" – anders schreiben oder unter „Meine Produkte“ anlegen.":""}; persist(); render(); };
   card.append(itf);
-  if(hasItems){
-    const ul=el("ul","calclist");
-    m.items.forEach((x,i)=>{ const li=el("li"); li.append(el("span",null,x.label), el("span","vals",(x.unsure?"ca. ":"")+x.g+" g · "+x.kcal+" kcal · "+fmt(x.e)+" g E"));
-      const rm=el("button","linkbtn","entfernen"); rm.type="button"; rm.onclick=()=>{ const mm=getMeal(key,sl.k,true); mm.items.splice(i,1); persist(); render(); }; li.append(rm); ul.append(li); });
-    card.append(ul);
-  }
+  card.append(manualForm(key,sl.k));
+  if(hasItems) card.append(itemsList(key,sl.k,m));
   if(flashMsg.slot===sl.k && flashMsg.text && !(m.r||m.b.length||hasItems)) card.append(el("div","goal",flashMsg.text));
 
   const r=RBY[m.r];
@@ -1270,7 +1303,8 @@ function mealCard(key, sl){
   if(m.r||m.b.length||hasItems){
     const sum=el("div","sum");
     const st=el("strong",null,"≈ "+r0(mt.e)+" g Eiweiß");
-    sum.append(st, document.createTextNode(", "+r0(mt.kcal)+" kcal, "+fmt(mt.b)+" g Ballaststoffe"));
+    const fatSum=(m.items||[]).reduce((t,x)=>t+(x.f||0),0);
+    sum.append(st, document.createTextNode(", "+r0(mt.kcal)+" kcal, "+fmt(Math.round(mt.b*10)/10)+" g Ballaststoffe"+(fatSum?", "+fmt(Math.round(fatSum*10)/10)+" g Fett":"")));
     if(mt.e < 45 && sl.k!=="f") sum.append(el("div","goal","Noch "+r0(45-mt.e)+" g bis 45 g – mehr Eiweiß ergänzt du im Tab „Rechner“ direkt beim Rezept."));
     card.append(sum);
     const act=el("div","meal-actions");
