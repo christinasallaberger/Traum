@@ -124,6 +124,8 @@ textarea.field{font:inherit;resize:vertical}
 .qin.amt{width:5.2em;min-height:40px;font-size:1.05rem}
 .notice{background:var(--protein-soft);border:2px solid var(--protein);border-radius:14px;padding:14px 16px;margin:12px 0;display:flex;flex-direction:column;gap:10px;font-weight:600}
 .notice .btn{align-self:flex-start}
+.photobox{border:2px dashed var(--protein);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.photobox .btn{align-self:flex-start}
 .drain{color:var(--muted);font-size:.88rem;display:inline-flex;gap:4px;align-items:center}
 .pot{font-weight:600;color:var(--kcal);margin-top:4px}
 .seg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -235,7 +237,7 @@ textarea.field{font:inherit;resize:vertical}
       <p>Oder weiter als:</p>
       <div id="known" class="known-list"></div>
     </div>
-    <p class="goal" style="font-size:.8rem">Version 15.11.2026 d</p>
+    <p class="goal" style="font-size:.8rem">Version 15.11.2026 e</p>
     <p id="emptyHint" class="goal" hidden>Hier ist noch nichts gespeichert. Hast du vorher woanders eingetragen, zum Beispiel in Safari statt in der App am Home-Bildschirm (oder umgekehrt)? Die beiden haben getrennte Speicher. Deine Daten holst du mit der Sicherung (Tab „Gewicht“, ganz unten) herüber.</p>
     <div id="storeWarnGate" class="warnbox" hidden></div>
   </section>
@@ -261,7 +263,7 @@ textarea.field{font:inherit;resize:vertical}
     <section id="v-opt" hidden></section>
     <section id="v-gewicht" hidden></section>
 
-    <p class="note">Version 15.11.2026 d · Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
+    <p class="note">Version 15.11.2026 e · Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
     <div class="sync" id="savestate"></div>
     <div class="sync" id="sync"></div>
   </div>
@@ -861,6 +863,86 @@ function openInRechner(rec){
   runCalc(true);
   view="opt"; render(); window.scrollTo(0,0);
 }
+/* ---------- Zutaten aus Fotos lesen ---------- */
+let sampleSvc;
+async function getSample(){
+  if(sampleSvc!==undefined) return sampleSvc;
+  sampleSvc=null;
+  if(!(window.claude && typeof window.claude.use==="function")) return null;
+  try{ const s=await Promise.race([window.claude.use("sample"), new Promise(r=>setTimeout(()=>r(null),4000))]); if(s){ const lim=await s.limits().catch(()=>null); if(lim&&lim.images) sampleSvc={s,lim}; } }catch(e){}
+  return sampleSvc;
+}
+function loadScript(src){ return new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src=src; sc.onload=res; sc.onerror=()=>rej(new Error("Skript nicht ladbar")); document.head.append(sc); }); }
+async function shrinkImage(file, maxSide){
+  try{
+    const bmp=await createImageBitmap(file);
+    const sc=Math.min(1, maxSide/Math.max(bmp.width,bmp.height));
+    const c=document.createElement("canvas"); c.width=Math.round(bmp.width*sc); c.height=Math.round(bmp.height*sc);
+    c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(b=>r(b||file),"image/jpeg",0.85));
+  }catch(e){ return file; }
+}
+const OCR_PROMPT="Auf den Bildern ist ein Rezept (zum Beispiel Screenshots aus der Cookidoo-App) oder eine Zutatenliste. Antworte NUR mit reinem Text, ohne Erklärungen:\n"+
+ "Zeile 1: der Name des Rezepts (falls sichtbar, sonst weglassen).\n"+
+ "Dann, falls sichtbar: die Anzahl der Portionen im Format '4 Portionen'.\n"+
+ "Dann jede Zutat in einer eigenen Zeile im Format 'Menge Einheit Zutat', zum Beispiel '400 g Hühnerbrust', '2 EL Olivenöl', '1 Zwiebel', '500 ml Wasser'. Mengenangaben wie '1-2' nimm mit dem ersten Wert. Zutaten ohne Menge (z. B. Salz) nur mit Namen.\n"+
+ "Am Ende, falls sichtbar, die Nährwerte pro Portion in genau diesen Formaten: '450 kcal', 'Eiweiß 30 g', 'Ballaststoffe 8 g'.\n"+
+ "Gibt es dieselbe Zutat auf mehreren Bildern doppelt (überlappende Screenshots), schreib sie nur einmal.";
+async function readPhotos(files, status){
+  const list=[...files]; if(!list.length) return "";
+  const svc=await getSample();
+  if(svc){
+    status("Claude liest "+list.length+" Foto"+(list.length>1?"s":"")+" …");
+    const max=(svc.lim.images.maxCount||5); let out=[];
+    for(let i=0;i<list.length;i+=max){
+      const imgs=[]; for(const f of list.slice(i,i+max)) imgs.push(await shrinkImage(f,1800));
+      const r=await svc.s(OCR_PROMPT,{images:imgs, modelTier:"default"});
+      out.push(r.text||"");
+    }
+    return out.join("\n");
+  }
+  if(/claude/.test(location.hostname)) throw new Error("Fotos auslesen geht hier nur, wenn du der Seite erlaubst, Bilder an Claude zu schicken.");
+  status("Texterkennung wird geladen (beim ersten Mal ca. 10–20 Sekunden) …");
+  if(!window.Tesseract) await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
+  const worker=await Tesseract.createWorker("deu",1,{logger:m=>{ if(m.status==="recognizing text") status("Lese Foto … "+Math.round((m.progress||0)*100)+" %"); }});
+  let all=[];
+  for(let i=0;i<list.length;i++){
+    status("Lese Foto "+(i+1)+" von "+list.length+" …");
+    const img=await shrinkImage(list[i],2200);
+    const r=await worker.recognize(img);
+    all.push(r.data.text||"");
+  }
+  await worker.terminate();
+  return all.join("\n").split("\n").map(x=>x.replace(/[|_~]+/g," ").replace(/\s{2,}/g," ").trim()).filter(x=>x.length>0).join("\n");
+}
+function photoBlock(){
+  const wrap=el("div","photobox");
+  wrap.append(el("strong",null,"Zutaten von Fotos lesen"));
+  wrap.append(el("div","vals","Mach Screenshots oder Fotos von der Zutatenliste (und den Nährwerten), auch mehrere. Die Zutaten werden abgelesen und unten eingetragen."));
+  const fi=document.createElement("input"); fi.type="file"; fi.accept="image/*"; fi.multiple=true; fi.hidden=true;
+  const b=el("button","btn primary","📷 Fotos auswählen"); b.type="button"; b.onclick=()=>fi.click();
+  const st=el("div","goal",opt.photoMsg||"");
+  const status=t=>{ st.textContent=t; };
+  fi.onchange=async()=>{
+    const files=fi.files; if(!files||!files.length) return;
+    b.disabled=true; status("Einen Moment …");
+    try{
+      const txt=(await readPhotos(files,status)).trim();
+      if(!txt){ status("Auf den Fotos wurde kein Text erkannt. Versuch es mit schärferen Fotos oder Screenshots."); b.disabled=false; return; }
+      opt.text=(opt.text&&opt.text.trim()?opt.text.trim()+"\n":"")+txt;
+      if(!opt.editId){ opt.name=""; opt.portionsTouched=false; }
+      runCalc(false);
+      opt.photoMsg="Abgelesen! Bitte die Zutaten im Textfeld kurz prüfen – bei Fotos können sich Fehler einschleichen. Danach bei Bedarf noch einmal „Berechnen“.";
+      render();
+    }catch(e){
+      status("Das hat nicht geklappt: "+(e&&e.message?e.message:e)+". Du kannst die Zutaten auch abtippen.");
+      b.disabled=false;
+    }
+  };
+  wrap.append(b,fi,st);
+  return wrap;
+}
+
 function selectAllSoon(inp){ setTimeout(()=>{ try{ inp.setSelectionRange(0, inp.value.length); }catch(e){ try{ inp.select(); }catch(e2){} } },60); }
 function renderOpt(){
   const v=$("v-opt"); v.innerHTML="";
@@ -888,11 +970,11 @@ function renderOpt(){
   tsel.onchange=()=>{ opt.taste=tsel.value; opt.tasteTouched=true; opt.adds=null; if(opt.calc) render(); };
   g2.append(fld("Geschmack (wird erkannt)",tsel));
   const go=el("button","btn primary","Berechnen"); go.type="button";
-  go.onclick=()=>{ opt.editId=opt.editId||null; runCalc(false); render(); };
+  go.onclick=()=>{ opt.editId=opt.editId||null; opt.photoMsg=""; runCalc(false); render(); };
 
   const wt=mk("ow","weight","text",{inputMode:"decimal",placeholder:"z. B. 1850"});
   wt.addEventListener("change",()=>{ opt.adds=null; if(opt.calc) render(); });
-  f.append(fld("Rezepttext",ta), fld("Name",mk("on","name","text")), fld("Link (optional)",mk("ou","url","url")), g2, fld("Fertiges Gericht in g (optional – Topf am Thermomix wiegen)",wt), go);
+  f.append(photoBlock(), fld("Rezepttext (oder Fotos oben)",ta), fld("Name",mk("on","name","text")), fld("Link (optional)",mk("ou","url","url")), g2, fld("Fertiges Gericht in g (optional – Topf am Thermomix wiegen)",wt), go);
   v.append(f);
   const pin=$("op"); if(pin) pin.addEventListener("input",()=>{opt.portionsTouched=true;});
 
