@@ -238,7 +238,7 @@ textarea.field{font:inherit;resize:vertical}
       <p>Oder weiter als:</p>
       <div id="known" class="known-list"></div>
     </div>
-    <p class="goal" style="font-size:.8rem">Version 15.11.2026 g</p>
+    <p class="goal" style="font-size:.8rem">Version 18.11.2026 a</p>
     <p id="emptyHint" class="goal" hidden>Hier ist noch nichts gespeichert. Hast du vorher woanders eingetragen, zum Beispiel in Safari statt in der App am Home-Bildschirm (oder umgekehrt)? Die beiden haben getrennte Speicher. Deine Daten holst du mit der Sicherung (Tab „Gewicht“, ganz unten) herüber.</p>
     <div id="storeWarnGate" class="warnbox" hidden></div>
   </section>
@@ -264,7 +264,7 @@ textarea.field{font:inherit;resize:vertical}
     <section id="v-opt" hidden></section>
     <section id="v-gewicht" hidden></section>
 
-    <p class="note">Version 15.11.2026 g · Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
+    <p class="note">Version 18.11.2026 a · Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
     <div class="sync" id="savestate"></div>
     <div class="sync" id="sync"></div>
   </div>
@@ -1877,32 +1877,34 @@ function renderRezepte(){
 
 /* ---------- Training ---------- */
 const yt = id => "https://www.youtube.com/watch?v=" + id;
+const WU1={role:"Aufwärmen", name:"5 MIN Ganzkörper Warm Up Routine", min:5, id:"mJv39-k9NYA"};
+const WU2={role:"Aufwärmen", name:"Warm Up Ganzkörper in 5 Minuten", min:5, id:"NgGWJI4RmsM"};
+const CD={role:"Cool Down", name:"Ganzkörper Cool Down nach dem Workout", min:7, id:"0HslYoOnsZU"};
 const UNITS = [
   {key:"oa", tag:"OA", day:1, dayLabel:"Dienstag", title:"Oberkörper A + Bauch", steps:[
-    {role:"Aufwärmen", name:"Mobility Routine vor dem Oberkörper Workout", min:6, id:"oBR3V_CKgDg"},
-    {role:"Hauptteil", name:"15 MIN Oberkörper Workout mit Hanteln (16 Übungen)", min:15, id:"-4WbxCf90_E"},
+    WU1,
     {role:"Hauptteil", name:"10 MIN Oberkörper – Arme, Schultern, Brust, Rücken (Hanteln dazunehmen)", min:10, id:"hszWidSNxsQ"},
+    {role:"Hauptteil", name:"10 MIN Oberkörper Workout ohne Geräte (Hanteln dazunehmen)", min:10, id:"tXgmRlSlgfU"},
     {role:"Bauch allgemein", name:"10 MIN Bauch Workout", min:10, id:"eNkqCn-CFCI"},
-    {role:"Dehnen", name:"Ganzkörper Cool Down", min:null, id:"0HslYoOnsZU"}]},
+    CD]},
   {key:"ua", tag:"UA", day:2, dayLabel:"Mittwoch", title:"Unterkörper A", steps:[
-    {role:"Aufwärmen", name:"5 MIN Ganzkörper Warm Up Routine", min:5, id:"mJv39-k9NYA"},
-    {role:"Hauptteil", name:"10 MIN Bauch Beine Po – 10 verschiedene Übungen (Hanteln dazunehmen)", min:10, id:"ttA-EJX-GMQ"},
-    {role:"Hauptteil", name:"10 MIN Schlanke Beine & runder Po (Hanteln dazunehmen)", min:10, id:"pFIirMEyziU"},
+    WU2,
+    {role:"Hauptteil", name:"20 MIN Kurzhantel Workout für straffe Beine und einen runden Po", min:20, id:"s43wUg3e8C0"},
     {role:"Hauptteil", name:"10 MIN Beine & Po, knieschonend (Hanteln dazunehmen)", min:10, id:"uCwPKHVu700"},
-    {role:"Dehnen", name:"5 MIN Cool Down", min:5, id:"UV-CL3Bckmg"}]},
+    CD]},
   {key:"z1", tag:"Z2", day:3, dayLabel:"Donnerstag", title:"Zone-2-Ausdauer", steps:[
     {role:"Ausdauer, locker", name:"Zügig gehen, Rad fahren oder locker joggen – Puls bei ca. 60–70 % vom Maximum, du kannst noch in ganzen Sätzen reden", min:45, id:null}]},
   {key:"ob", tag:"OB", day:4, dayLabel:"Freitag", title:"Oberkörper B", steps:[
-    {role:"Aufwärmen", name:"Mobility Routine vor dem Oberkörper Workout", min:6, id:"oBR3V_CKgDg"},
-    {role:"Hauptteil", name:"15 MIN Oberkörper Workout für Zuhause (Hanteln dazunehmen)", min:15, id:"NaCXzn2_d08"},
-    {role:"Hauptteil", name:"10 MIN Oberkörper ohne Geräte (Hanteln dazunehmen)", min:10, id:"tXgmRlSlgfU"},
-    {role:"Dehnen", name:"Ganzkörper Cool Down", min:null, id:"0HslYoOnsZU"}]},
+    WU1,
+    {role:"Hauptteil", name:"15 MIN ganzes Oberkörper Workout mit Hanteln (16 Übungen)", min:15, id:"-4WbxCf90_E"},
+    {role:"Hauptteil", name:"15 MIN Oberkörper Workout für Zuhause mit Kurzhanteln", min:15, id:"NaCXzn2_d08"},
+    CD]},
   {key:"ub", tag:"UB", day:5, dayLabel:"Samstag", title:"Unterkörper B + Unterbauch", steps:[
-    {role:"Aufwärmen", name:"Warm Up Ganzkörper in 5 Minuten", min:5, id:"NgGWJI4RmsM"},
-    {role:"Hauptteil", name:"15 MIN Bauch Beine Po ohne Sprünge (Hanteln dazunehmen)", min:15, id:"4tPisgQoL60"},
-    {role:"Hauptteil", name:"15 MIN Beine & Po – Leg Day (Hanteln dazunehmen)", min:15, id:"Rn6Z1Bvf2Zg"},
+    WU2,
+    {role:"Hauptteil", name:"10 MIN Bauch Beine Po – 10 verschiedene Übungen (Hanteln dazunehmen)", min:10, id:"ttA-EJX-GMQ"},
+    {role:"Hauptteil", name:"10 MIN Schlanke Beine & runder Po (Hanteln dazunehmen)", min:10, id:"pFIirMEyziU"},
     {role:"Unterbauch", name:"10 MIN untere Bauchmuskeln", min:10, id:"deGJG_S5rRk"},
-    {role:"Dehnen", name:"5 MIN Cool Down", min:5, id:"UV-CL3Bckmg"}]},
+    CD]},
   {key:"z2", tag:"Z2", day:6, dayLabel:"Sonntag", title:"Zone-2-Ausdauer", steps:[
     {role:"Ausdauer, locker", name:"Zügig gehen, Rad fahren oder locker joggen – Puls bei ca. 60–70 % vom Maximum, du kannst noch in ganzen Sätzen reden", min:45, id:null}]}
 ];
@@ -1912,7 +1914,7 @@ function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; 
 function isoWeek(d){ const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); const day=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-day); const y=t.getUTCFullYear(); const w=Math.ceil(((t-Date.UTC(y,0,1))/86400000+1)/7); return {y,w,key:y+"-W"+pad(w)}; }
 function tWeeks(){ if(!state.training||typeof state.training!=="object") state.training={weeks:{}}; if(!state.training.weeks) state.training.weeks={}; return state.training.weeks; }
 function tWeekData(key){ const W=tWeeks(); if(!W[key]) W[key]={units:{}}; const wk=W[key];
-  UNITS.forEach(u=>{ if(!wk.units[u.key]) wk.units[u.key]={s:u.steps.map(()=>false),doneAt:null}; const s=wk.units[u.key].s; while(s.length<u.steps.length) s.push(false); }); return wk; }
+  UNITS.forEach(u=>{ if(!wk.units[u.key]) wk.units[u.key]={s:u.steps.map(()=>false),doneAt:null}; const s=wk.units[u.key].s; while(s.length<u.steps.length) s.push(false); if(s.length>u.steps.length) s.length=u.steps.length; }); return wk; }
 function tPeek(key){ return tWeeks()[key]||{units:{}}; }
 function tDone(wk,u){ const d=wk.units[u.key]; return !!(d&&d.doneAt); }
 function tCompletion(u){ return tOffset===0 ? ymd(new Date()) : ymd(addDays(mondayOf(tOffset),u.day)); }
@@ -1949,7 +1951,7 @@ function renderTraining(){
     const data=wk.units[u.key]||{s:u.steps.map(()=>false),doneAt:null}, n=data.s.filter(Boolean).length, dn=!!data.doneAt;
     const card=el("section","tunit"+(tOpen===u.key?" open":"")+(dn?" complete":""));
     const head=el("button","tunit-head"); head.setAttribute("aria-expanded",tOpen===u.key?"true":"false");
-    const t=el("span","t"); t.append(el("strong",null,u.title), el("span",null, dn? "Erledigt am "+DS[wd(new Date(data.doneAt+"T00:00"))]+", "+new Date(data.doneAt+"T00:00").getDate()+"." : u.dayLabel));
+    const t=el("span","t"); t.append(el("strong",null,u.title), el("span",null, dn? "Erledigt am "+DS[wd(new Date(data.doneAt+"T00:00"))]+", "+new Date(data.doneAt+"T00:00").getDate()+"." : u.dayLabel+" · ca. "+u.steps.reduce((t,x)=>t+(x.min||0),0)+" Min."));
     head.append(el("span","tag",dn?"✓":u.tag), t, el("span","count",n+"/"+u.steps.length), el("span","chev","▾"));
     head.onclick=()=>{ tOpen=tOpen===u.key?"":u.key; render(); };
     const body=el("div","tunit-body"); const ul=el("ul","tsteps");
