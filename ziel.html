@@ -127,6 +127,10 @@ textarea.field{font:inherit;resize:vertical}
 .photobox{border:2px dashed var(--protein);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .photobox .btn{align-self:flex-start}
 .codeout{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;word-break:break-all;padding:8px 10px;min-height:70px}
+.morerec{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.morerec select{min-height:46px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;padding:0 10px;width:100%}
+.morehead{display:flex;justify-content:space-between;align-items:center}
+.meal>.btn{margin-top:10px}
 .drain{color:var(--muted);font-size:.88rem;display:inline-flex;gap:4px;align-items:center}
 .pot{font-weight:600;color:var(--kcal);margin-top:4px}
 .seg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -238,7 +242,7 @@ textarea.field{font:inherit;resize:vertical}
       <p>Oder weiter als:</p>
       <div id="known" class="known-list"></div>
     </div>
-    <p class="goal" style="font-size:.8rem">Version 18.11.2026 a</p>
+    <p class="goal" style="font-size:.8rem">Version 19.11.2026 a</p>
     <p id="emptyHint" class="goal" hidden>Hier ist noch nichts gespeichert. Hast du vorher woanders eingetragen, zum Beispiel in Safari statt in der App am Home-Bildschirm (oder umgekehrt)? Die beiden haben getrennte Speicher. Deine Daten holst du mit der Sicherung (Tab „Gewicht“, ganz unten) herüber.</p>
     <div id="storeWarnGate" class="warnbox" hidden></div>
   </section>
@@ -264,7 +268,7 @@ textarea.field{font:inherit;resize:vertical}
     <section id="v-opt" hidden></section>
     <section id="v-gewicht" hidden></section>
 
-    <p class="note">Version 18.11.2026 a · Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
+    <p class="note">Version 19.11.2026 a · Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
     <div class="sync" id="savestate"></div>
     <div class="sync" id="sync"></div>
   </div>
@@ -1528,6 +1532,7 @@ function mealTotals(m){
   if(!m) return t;
   const r=RBY[m.r];
   if(r){ if(r.kcal==null) t.unknown=true; t.kcal+=(r.kcal||0)*m.p; t.e+=(r.e||0)*m.p; t.b+=(r.b||0)*m.p; }
+  (m.more||[]).forEach(x=>{ const r2=RBY[x.r]; if(r2){ if(r2.kcal==null) t.unknown=true; t.kcal+=(r2.kcal||0)*x.p; t.e+=(r2.e||0)*x.p; t.b+=(r2.b||0)*x.p; } });
   (m.items||[]).forEach(x=>{ t.kcal+=x.kcal||0; t.e+=x.e||0; t.b+=x.b||0; });
   (m.b||[]).forEach(id=>{ const pp=productById(id); if(pp){ const x=pPortion(pp); t.kcal+=x.kcal; t.e+=x.e; t.b+=x.b; return; } const sw=sweetById(id); if(sw){ t.kcal+=sw.kcal; t.e+=sw.e||0; t.b+=sw.b||0; return; } const x=BBY[id]; if(x){ t.kcal+=x.kcal; t.e+=x.e; t.b+=x.b; } });
   return t;
@@ -1592,6 +1597,40 @@ function renderTag(){
   SLOTS.forEach(sl=>v.append(sl.snack?snackCard(key):mealCard(key,sl)));
   v.append(remainingCard(key));
 }
+function recipeSelect(value, slotK, label){
+  const sel=document.createElement("select"); sel.setAttribute("aria-label",label);
+  const o0=el("option",null,"Rezept wählen …"); o0.value=""; sel.append(o0);
+  (slotK==="f" ? ["f","h"] : ["h","f"]).forEach(c=>{
+    const g=document.createElement("optgroup"); g.label = c==="f"?"Frühstück":"Hauptgerichte";
+    R.filter(r=>r.cat===c).forEach(r=>{ const o=el("option",null,r.n); o.value=r.id; g.append(o); });
+    sel.append(g);
+  });
+  sel.value=value||"";
+  return sel;
+}
+function extraRecipeRow(key, sl, x, i){
+  const box=el("div","morerec");
+  const top=el("div","morehead"); top.append(el("strong",null,"Weiteres Rezept"));
+  const rm=el("button","linkbtn","entfernen"); rm.type="button"; rm.onclick=()=>{ const mm=getMeal(key,sl.k,true); mm.more.splice(i,1); persist(); render(); };
+  top.append(rm); box.append(top);
+  const sel=recipeSelect(x.r, sl.k, sl.t+": weiteres Rezept wählen");
+  sel.onchange=()=>{ const mm=getMeal(key,sl.k,true); mm.more[i].r=sel.value; mm.more[i].p=(RBY[sel.value]&&unitOf(RBY[sel.value])!=="Portion")?2:1; persist(); render(); };
+  box.append(sel);
+  const r=RBY[x.r];
+  if(r){
+    const u=unitOf(r);
+    box.append(el("div","vals", r.kcal==null?"Nährwerte siehe Rezept":"Pro "+u+": "+fmt(r.kcal)+" kcal, "+fmt(r.e)+" g Eiweiß"+(r.b!=null?", "+fmt(r.b)+" g Ballaststoffe":"")));
+    if(r.potg) box.append(el("div","pot","Aus dem Topf: "+r.potg+" g pro Portion"+(x.p!==1?" (× "+fmt(x.p)+" = "+r0(r.potg*x.p)+" g)":"")));
+    if(r.url){ const a=document.createElement("a"); a.href=r.url; a.target="_blank"; a.rel="noopener"; a.textContent="Rezept in Cookidoo öffnen"; const ad=el("div"); ad.append(a); box.append(ad); }
+    const por=el("div","portion");
+    const minus=el("button",null,"−"); minus.type="button"; minus.setAttribute("aria-label","Weniger");
+    const plus=el("button",null,"+"); plus.type="button"; plus.setAttribute("aria-label","Mehr");
+    minus.onclick=()=>{ const mm=getMeal(key,sl.k,true); mm.more[i].p=Math.max(0.5,mm.more[i].p-0.5); persist(); render(); };
+    plus.onclick=()=>{ const mm=getMeal(key,sl.k,true); mm.more[i].p=Math.min(6,mm.more[i].p+0.5); persist(); render(); };
+    por.append(minus, el("span",null,fmt(x.p)+" "+unitLabel(u,x.p)), plus); box.append(por);
+  }
+  return box;
+}
 function mealCard(key, sl){
   const m=getMeal(key,sl.k,false) || {r:"",p:1,b:[]};
   const mt=mealTotals(m);
@@ -1610,7 +1649,9 @@ function mealCard(key, sl){
     sel.append(g);
   });
   sel.value=m.r||"";
-  sel.onchange=()=>{ const mm=getMeal(key,sl.k,true); mm.r=sel.value; mm.p=(RBY[sel.value]&&unitOf(RBY[sel.value])!=="Portion")?2:1; persist(); render(); };
+  sel.onchange=()=>{ const mm=getMeal(key,sl.k,true); mm.r=sel.value; mm.p=(RBY[sel.value]&&unitOf(RBY[sel.value])!=="Portion")?2:1;
+    if(!mm.r && (mm.more||[]).length){ const f=mm.more.shift(); mm.r=f.r; mm.p=f.p; }
+    persist(); render(); };
   card.append(sel);
   if(!R.length) card.append(el("div","goal","Noch keine Rezepte – leg im Tab „Rechner“ dein erstes an, oder trag unten einzelne Sachen ein."));
   card.append(el("div","chips-cap",m.r?"Dazu noch etwas eintragen:":"Ohne Rezept – einfach hinschreiben, was du isst:"));
@@ -1642,6 +1683,10 @@ function mealCard(key, sl){
     minus.onclick=()=>{ const mm=getMeal(key,sl.k,true); mm.p=Math.max(0.5,mm.p-0.5); persist(); render(); };
     plus.onclick=()=>{ const mm=getMeal(key,sl.k,true); mm.p=Math.min(6,mm.p+0.5); persist(); render(); };
     por.append(minus,lbl,plus); card.append(por);
+    (m.more||[]).forEach((x,i)=>card.append(extraRecipeRow(key,sl,x,i)));
+    const addR=el("button","btn","+ weiteres Rezept zu dieser Mahlzeit"); addR.type="button";
+    addR.onclick=()=>{ const mm=getMeal(key,sl.k,true); mm.more=(mm.more||[]).concat({r:"",p:1}); persist(); render(); };
+    card.append(addR);
   }
 
   if((m.b||[]).length){
@@ -1659,7 +1704,7 @@ function mealCard(key, sl){
     const act=el("div","meal-actions");
     const cp=el("button","btn","Auch für die nächsten 2 Tage");
     cp.onclick=()=>{
-      for(let i=1;i<=2;i++){ const k=ymd(dateAt(dayOffset+i)); const mm=getMeal(k,sl.k,true); mm.r=m.r; mm.p=m.p; mm.b=(m.b||[]).slice(); mm.items=(m.items||[]).map(x=>({...x})); }
+      for(let i=1;i<=2;i++){ const k=ymd(dateAt(dayOffset+i)); const mm=getMeal(k,sl.k,true); mm.r=m.r; mm.p=m.p; mm.more=(m.more||[]).map(x=>({...x})); mm.b=(m.b||[]).slice(); mm.items=(m.items||[]).map(x=>({...x})); }
       flashMsg={slot:sl.k,text:"Für die nächsten 2 Tage eingeplant."}; persist(); render();
     };
     const clr=el("button","btn","Leeren");
@@ -1710,7 +1755,7 @@ function remainingCard(key){
   if(needE<=0 && needB<=0){ card.append(el("p","goal","Eiweiß und Ballaststoffe passen schon. Wenn du noch Hunger hast: etwas Leichtes mit viel Gemüse.")); }
   const score=x=>{ const fe=needE>0?Math.min(x.e,needE)/needE:0.3; const fb=needB>0?Math.min(x.b,needB)/needB:0.3; const dd=x.d?Math.max(0,1.5-x.d)/1.5:0.3; return fe*2+fb*1.2+dd*0.8-(x.kcal/Math.max(restK,1))*0.3; };
   // eigene Rezepte
-  const used=new Set(SLOTS.map(sl=>{ const m=getMeal(key,sl.k,false); return m&&m.r; }).filter(Boolean));
+  const used=new Set([].concat(...SLOTS.map(sl=>{ const m=getMeal(key,sl.k,false); return m? [m.r].concat((m.more||[]).map(x=>x.r)) : []; })).filter(Boolean));
   const own=R.filter(r=>r.kcal!=null && !used.has(r.id)).map(r=>{ let p=1; if(r.kcal>restK*1.1) p=0.5; const x={r,p,kcal:r.kcal*p,e:(r.e||0)*p,b:(r.b||0)*p,d:r.pg?r.kcal/r.pg:null}; return x; }).filter(x=>x.kcal<=restK*1.1).sort((a,b)=>score(b)-score(a)).slice(0,3);
   const isEmpty=sl=>{ const m=getMeal(key,sl.k,false); return !m||(!m.r&&!(m.items||[]).length); };
   const h=new Date().getHours(); const pref=h<10?"f":h<15?"m":"a";
@@ -1767,8 +1812,10 @@ function renderWoche(){
     MAIN_SLOTS.forEach(s=>{
       const meal=getMeal(k,s.k,false); const r=meal&&RBY[meal.r];
       if(r){ any=true; const ag=agg[r.id]||(agg[r.id]={r,p:0}); ag.p+=meal.p; }
+      const moreR=((meal&&meal.more)||[]).map(x=>({x,r:RBY[x.r]})).filter(y=>y.r);
+      moreR.forEach(y=>{ const ag=agg[y.r.id]||(agg[y.r.id]={r:y.r,p:0}); ag.p+=y.x.p; });
       const its=(meal&&meal.items)||[]; if(its.length) any=true;
-      mm.append(el("div",null, s.t.slice(0,1)+": "+(r?r.n:(its.length?its.map(x=>x.name).join(", "):"–"))));
+      mm.append(el("div",null, s.t.slice(0,1)+": "+(r?[r.n].concat(moreR.map(y=>y.r.n)).join(" + "):(its.length?its.map(x=>x.name).join(", "):"–"))));
     });
     if(swk) mm.append(el("div",null,"Süßes: "+r0(swk)+" kcal"));
     const p=el("div","p", any? r0(t.e)+" g" : "–"); if(any) p.append(el("small",null,r0(t.kcal)+" kcal"));
