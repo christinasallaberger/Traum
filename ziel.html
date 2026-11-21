@@ -242,7 +242,7 @@ textarea.field{font:inherit;resize:vertical}
       <p>Oder weiter als:</p>
       <div id="known" class="known-list"></div>
     </div>
-    <p class="goal" style="font-size:.8rem">Version 20.11.2026 b</p>
+    <p class="goal" style="font-size:.8rem">Version 21.11.2026 b</p>
     <p id="emptyHint" class="goal" hidden>Hier ist noch nichts gespeichert. Hast du vorher woanders eingetragen, zum Beispiel in Safari statt in der App am Home-Bildschirm (oder umgekehrt)? Die beiden haben getrennte Speicher. Deine Daten holst du mit der Sicherung (Tab „Gewicht“, ganz unten) herüber.</p>
     <div id="storeWarnGate" class="warnbox" hidden></div>
   </section>
@@ -268,7 +268,7 @@ textarea.field{font:inherit;resize:vertical}
     <section id="v-opt" hidden></section>
     <section id="v-gewicht" hidden></section>
 
-    <p class="note">Version 20.11.2026 b · Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
+    <p class="note">Version 21.11.2026 b · Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
     <div class="sync" id="savestate"></div>
     <div class="sync" id="sync"></div>
   </div>
@@ -1971,27 +1971,27 @@ const CD={role:"Cool Down", name:"Ganzkörper Cool Down nach dem Workout", min:7
 const UNITS = [
   {key:"oa", tag:"OA", day:1, dayLabel:"Dienstag", title:"Oberkörper A + Bauch", steps:[
     WU1,
-    {role:"Hauptteil", name:"10 MIN Oberkörper – Arme, Schultern, Brust, Rücken (Hanteln dazunehmen)", min:10, id:"hszWidSNxsQ"},
-    {role:"Hauptteil", name:"10 MIN Oberkörper Workout ohne Geräte (Hanteln dazunehmen)", min:10, id:"tXgmRlSlgfU"},
-    {role:"Bauch allgemein", name:"10 MIN Bauch Workout", min:10, id:"eNkqCn-CFCI"},
+    {role:"Hauptteil · Kurzhanteln", name:"15 MIN ganzes Oberkörper Workout mit Hanteln (16 Übungen im Supersatz)", min:15, id:"-4WbxCf90_E"},
+    {role:"Hauptteil · Kurzhanteln", name:"10 MIN Arms & Back Workout mit Kurzhanteln", min:10, id:"NIVKJiXyW8k"},
+    {role:"Bauch allgemein (ohne Gewicht)", name:"10 MIN Bauch Workout", min:10, id:"eNkqCn-CFCI"},
     CD]},
   {key:"ua", tag:"UA", day:2, dayLabel:"Mittwoch", title:"Unterkörper A", steps:[
     WU2,
-    {role:"Hauptteil", name:"20 MIN Kurzhantel Workout für straffe Beine und einen runden Po", min:20, id:"s43wUg3e8C0"},
-    {role:"Hauptteil", name:"10 MIN Beine & Po, knieschonend (Hanteln dazunehmen)", min:10, id:"uCwPKHVu700"},
+    {role:"Hauptteil · Kurzhanteln", name:"20 MIN Kurzhantel Workout für straffe Beine und einen runden Po", min:20, id:"s43wUg3e8C0"},
+    {role:"Hauptteil · Kurzhanteln", name:"10 MIN Sexy Legs Workout (mit Kurzhanteln)", min:10, id:"SfnQjys6zvc"},
     CD]},
   {key:"z1", tag:"Z2", day:3, dayLabel:"Donnerstag", title:"Zone-2-Ausdauer", steps:[
     {role:"Ausdauer, locker", name:"Zügig gehen, Rad fahren oder locker joggen – Puls bei ca. 60–70 % vom Maximum, du kannst noch in ganzen Sätzen reden", min:45, id:null}]},
   {key:"ob", tag:"OB", day:4, dayLabel:"Freitag", title:"Oberkörper B", steps:[
     WU1,
-    {role:"Hauptteil", name:"15 MIN ganzes Oberkörper Workout mit Hanteln (16 Übungen)", min:15, id:"-4WbxCf90_E"},
-    {role:"Hauptteil", name:"15 MIN Oberkörper Workout für Zuhause mit Kurzhanteln", min:15, id:"NaCXzn2_d08"},
+    {role:"Hauptteil · Kurzhanteln", name:"15 MIN Oberkörper Workout mit Kurzhanteln (Grundübungen)", min:15, id:"NaCXzn2_d08"},
+    {role:"Hauptteil · Kurzhanteln", name:"15 MIN Ganzkörper Workout mit Kurzhanteln", min:15, id:"1v9HkOV10iw"},
     CD]},
   {key:"ub", tag:"UB", day:5, dayLabel:"Samstag", title:"Unterkörper B + Unterbauch", steps:[
     WU2,
-    {role:"Hauptteil", name:"10 MIN Bauch Beine Po – 10 verschiedene Übungen (Hanteln dazunehmen)", min:10, id:"ttA-EJX-GMQ"},
-    {role:"Hauptteil", name:"10 MIN Schlanke Beine & runder Po (Hanteln dazunehmen)", min:10, id:"pFIirMEyziU"},
-    {role:"Unterbauch", name:"10 MIN untere Bauchmuskeln", min:10, id:"deGJG_S5rRk"},
+    {role:"Hauptteil · Kurzhanteln", name:"15 MIN Bauch Beine Po ohne Sprünge – Variante mit Zusatzgewicht", min:15, id:"oWp9cDxeYyE"},
+    {role:"Hauptteil · Kurzhanteln", name:"10 MIN Beine & Po – Variante mit Kurzhanteln", min:10, id:"j6hz6YfF5C8"},
+    {role:"Unterbauch (ohne Gewicht)", name:"10 MIN untere Bauchmuskeln", min:10, id:"deGJG_S5rRk"},
     CD]},
   {key:"z2", tag:"Z2", day:6, dayLabel:"Sonntag", title:"Zone-2-Ausdauer", steps:[
     {role:"Ausdauer, locker", name:"Zügig gehen, Rad fahren oder locker joggen – Puls bei ca. 60–70 % vom Maximum, du kannst noch in ganzen Sätzen reden", min:45, id:null}]}
@@ -2066,7 +2066,7 @@ function renderTraining(){
     svg+='<text x="'+(x+13)+'" y="'+(c>0?y-6:114)+'" text-anchor="middle" style="fill:var(--ink);font:600 13px \'Source Sans 3\',sans-serif">'+c+'</text>';
     svg+='<text x="'+(x+13)+'" y="140" text-anchor="middle" style="fill:'+(iw.key===key?"var(--ink)":"var(--muted)")+';font:'+(iw.key===key?"700":"400")+' 12px \'Source Sans 3\',sans-serif">KW '+iw.w+'</text>'; }
   v.insertAdjacentHTML("beforeend", svg+'</svg>');
-  v.append(el("p","goal","Tippe eine Einheit an und hake jeden Teil ab. Ist alles abgehakt, zählt die Einheit für diese Woche. Bei Videos ohne Geräte nimmst du die Hanteln einfach dazu."));
+  v.append(el("p","goal","Tippe eine Einheit an und hake jeden Teil ab. Ist alles abgehakt, zählt die Einheit für diese Woche. Alle Hauptteile sind mit Kurzhanteln. Bauch, Warm-up und Cool-down sind ohne Gewicht."));
 }
 
 /* ---------- Sicherung / anderes Gerät ---------- */
@@ -2135,11 +2135,44 @@ const LZ=(function(){
   };
 })();
 
-function backupCodeSync(){ return "EP3:"+LZ.compress(JSON.stringify({v:1, profile, state})); }
+function crc4(str){ let h=0; for(let i=0;i<str.length;i++){ h=(h*31+str.charCodeAt(i))>>>0; } return (h%46656).toString(36).padStart(3,"0"); }
+function compactState(){
+  const st=normalize(JSON.parse(JSON.stringify(state)));
+  const cut=ymd(dateAt(-14)), days={};
+  Object.keys(st.days||{}).forEach(k=>{ if(k>=cut) days[k]=st.days[k]; });
+  const weeks={}; const keep=[0,-1,-2].map(o=>isoWeek(mondayOf(o)).key);
+  Object.keys((st.training&&st.training.weeks)||{}).forEach(k=>{ if(keep.includes(k)) weeks[k]=st.training.weeks[k]; });
+  const out={days, weights:st.weights, custom:(st.custom||[]).map(c=>{ const x={...c}; delete x.srcData; return x; }),
+    setup:st.setup||undefined, setupSkipped:st.setupSkipped||undefined, targets:st.targets||undefined, sweets:st.sweets&&st.sweets.length?st.sweets:undefined,
+    products:st.products||undefined, productsDel:st.productsDel&&st.productsDel.length?st.productsDel:undefined, omitAlways:st.omitAlways&&st.omitAlways.length?st.omitAlways:undefined,
+    training:Object.keys(weeks).length?{weeks}:undefined};
+  return out;
+}
+function backupCodeSync(){ const data=LZ.compress(JSON.stringify({v:2, p:profile, s:compactState()})); return "EP4:"+data+"~"+crc4(data); }
+function mergeState(a,b){
+  a=normalize(a); b=normalize(b);
+  const out={...a};
+  ["setup","targets","products","productsDel","omitAlways"].forEach(k=>{ if(b[k]!=null) out[k]=b[k]; });
+  if(b.setup) out.setupSkipped=false; else if(b.setupSkipped) out.setupSkipped=true;
+  out.days={...(a.days||{}),...(b.days||{})};
+  const wm={}; (a.weights||[]).concat(b.weights||[]).forEach(w=>{ wm[w.d]=w; }); out.weights=Object.values(wm).sort((x,y)=>x.d<y.d?-1:1);
+  const cm={}; (a.custom||[]).forEach(c=>{ cm[c.id]=c; }); (b.custom||[]).forEach(c=>{ const old=cm[c.id]; cm[c.id]=(old&&old.srcData&&!c.srcData)?{...c,srcData:old.srcData}:c; }); out.custom=Object.values(cm);
+  const sm={}; (a.sweets||[]).concat(b.sweets||[]).forEach(x=>{ sm[x.id]=x; }); out.sweets=Object.values(sm);
+  out.training={weeks:{...((a.training&&a.training.weeks)||{}),...((b.training&&b.training.weeks)||{})}};
+  return out;
+}
 async function backupCode(){ return backupCodeSync(); }
 async function readBackup(txt){
   txt=String(txt||"").trim();
   let json;
+  const m4=txt.match(/EP4:([A-Za-z0-9+\-$\s]+)~\s*([0-9a-z]{3})/);
+  if(m4){
+    const body=m4[1].replace(/\s+/g,"");
+    if(crc4(body)!==m4[2]) throw new Error("Der Code ist nicht vollständig angekommen (ein Teil fehlt oder wurde verändert). Bitte noch einmal kopieren oder „Als Datei speichern“ verwenden.");
+    const j=LZ.decompress(body); if(!j) throw new Error("Code unvollständig");
+    const d=JSON.parse(j); return {v:2, profile:d.p, state:d.s, compact:true};
+  }
+  if(/EP4:/.test(txt)) throw new Error("Der Code ist nicht vollständig angekommen – das Ende fehlt. Bitte den ganzen Code kopieren (er endet mit ~ und drei Zeichen).");
   const m=txt.match(/EP([123]):([A-Za-z0-9+\-$_=\/\s]+)/);
   if(m){
     const body=m[2].replace(/\s+/g,"");
@@ -2155,8 +2188,8 @@ async function readBackup(txt){
   return d;
 }
 function applyBackup(d){
-  if(!confirm("Alle Daten auf diesem Gerät für „"+profile+"“ durch die Sicherung ersetzen?")) return false;
-  state=normalize(d.state); rebuild(); persist(); if(remote) flush(); render(); return true;
+  if(!confirm("Den Stand aus dem Code mit den Daten auf diesem Gerät zusammenführen? (Gleiche Tage werden durch den Code ersetzt.)")) return false;
+  state=mergeState(state, d.state); rebuild(); persist(); if(remote) flush(); render(); return true;
 }
 function copyText(text, ta){
   let ok=false;
@@ -2180,7 +2213,7 @@ function renderBackup(v){
   const fl=el("button","btn","Als Datei speichern"); fl.type="button";
   fl.onclick=()=>{ try{ const blob=new Blob([code],{type:"text/plain"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="essensplan-code-"+slug(profile)+"-"+ymd(new Date())+".txt"; document.body.append(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); msg.textContent="Datei gespeichert (am iPhone unter „Dateien“)."; }catch(e){ msg.textContent="Speichern als Datei geht hier nicht – nimm „Code kopieren“."; } };
   r1.append(fl);
-  f.append(el("label",null,"Dein aktueller Speicher-Code"), out, r1, msg);
+  f.append(el("label",null,"Dein aktueller Speicher-Code ("+code.length+" Zeichen – enthält die letzten 14 Tage, alle Gewichte, Rezepte und Einstellungen)"), out, r1, msg);
   f.append(el("label",null,"Code von einem anderen Gerät hier übernehmen"));
   const ta=document.createElement("textarea"); ta.className="field"; ta.rows=3; ta.placeholder="Speicher-Code hier einfügen …"; ta.style.padding="10px 14px";
   const r2=el("div","meal-actions");
@@ -2188,7 +2221,7 @@ function renderBackup(v){
   const fi=document.createElement("input"); fi.type="file"; fi.accept=".txt,.json,text/plain,application/json"; fi.hidden=true;
   const fb=el("button","btn","Datei laden"); fb.type="button"; fb.onclick=()=>fi.click();
   const msg2=el("div","flash","");
-  const take=async(t)=>{ try{ const d=await readBackup(t); if(d.profile && slug(d.profile)!==slug(profile)){ msg2.textContent="Dieser Code gehört zu „"+d.profile+"“. Wechsle oben mit „Person wechseln“ zu diesem Namen."; return; } if(applyBackup(d)) alert("Dein Stand wurde übernommen."); }catch(e){ msg2.textContent=(e&&e.message&&/älteren|unvollständig/.test(e.message))? e.message : "Das ist kein gültiger Speicher-Code. Bitte den ganzen Code einfügen."; } };
+  const take=async(t)=>{ try{ const d=await readBackup(t); if(d.profile && slug(d.profile)!==slug(profile)){ msg2.textContent="Dieser Code gehört zu „"+d.profile+"“. Wechsle oben mit „Person wechseln“ zu diesem Namen."; return; } if(applyBackup(d)) alert("Dein Stand wurde übernommen."); }catch(e){ msg2.textContent=(e&&e.message&&/älteren|unvollständig|vollständig/.test(e.message))? e.message : "Das ist kein gültiger Speicher-Code. Bitte den ganzen Code einfügen."; } };
   ap.onclick=()=>take(ta.value);
   fi.onchange=()=>{ const file=fi.files&&fi.files[0]; if(file) file.text().then(take); };
   r2.append(ap,fb);
@@ -2349,14 +2382,11 @@ $("gateForm").addEventListener("submit",async e=>{ e.preventDefault();
   const v=$("nameInput").value.trim(); if(!v) return;
   const code=$("codeInput").value.trim(); $("codeMsg").textContent="";
   if(!code){ try{ await startProfile(v); }catch(err){ $("codeMsg").textContent="Fehler beim Start: "+err.message; $("gate").hidden=false; } return; }
-  let d; try{ d=await readBackup(code); }catch(err){ $("codeMsg").textContent=(err&&err.message&&/älteren|unvollständig/.test(err.message))? err.message : "Dieser Speicher-Code ist ungültig oder unvollständig. Bitte den ganzen Code einfügen."; return; }
+  let d; try{ d=await readBackup(code); }catch(err){ $("codeMsg").textContent=(err&&err.message&&/älteren|unvollständig|vollständig/.test(err.message))? err.message : "Dieser Speicher-Code ist ungültig oder unvollständig. Bitte den ganzen Code einfügen."; return; }
   if(d.profile && slug(d.profile)!==slug(v)){ $("codeMsg").textContent="Dieser Code gehört zu „"+d.profile+"“. Bitte genau diesen Namen eingeben."; return; }
-  let had=false; try{ const raw=localStorage.getItem(LS_KEY+":"+slug(v)); had=!!raw && raw.length>60; }catch(err){}
-  if(had && !confirm("Auf diesem Gerät gibt es schon Daten für „"+v+"“. Mit dem Stand aus dem Code ersetzen?")){ startProfile(v); return; }
-  try{ localStorage.setItem(LS_KEY+":"+slug(v), JSON.stringify(normalize(d.state))); }catch(err){}
   $("codeInput").value="";
   await startProfile(v);
-  state=normalize(d.state); rebuild(); persist(); if(remote) flush();
+  state=mergeState(state, d.state); rebuild(); persist(); if(remote) flush();
   if(needsSetup()) showSetup(false); else { $("setup").hidden=true; $("app").hidden=false; render(); }
   alert("Dein Stand wurde übernommen.");
 });
