@@ -242,7 +242,7 @@ textarea.field{font:inherit;resize:vertical}
       <p>Oder weiter als:</p>
       <div id="known" class="known-list"></div>
     </div>
-    <p class="goal" style="font-size:.8rem">Version 20.11.2026 a</p>
+    <p class="goal" style="font-size:.8rem">Version 20.11.2026 b</p>
     <p id="emptyHint" class="goal" hidden>Hier ist noch nichts gespeichert. Hast du vorher woanders eingetragen, zum Beispiel in Safari statt in der App am Home-Bildschirm (oder umgekehrt)? Die beiden haben getrennte Speicher. Deine Daten holst du mit der Sicherung (Tab „Gewicht“, ganz unten) herüber.</p>
     <div id="storeWarnGate" class="warnbox" hidden></div>
   </section>
@@ -268,7 +268,7 @@ textarea.field{font:inherit;resize:vertical}
     <section id="v-opt" hidden></section>
     <section id="v-gewicht" hidden></section>
 
-    <p class="note">Version 20.11.2026 a · Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
+    <p class="note">Version 20.11.2026 b · Nährwerte sind Richtwerte. Die Sicherung für ein anderes Gerät findest du ganz unten im Tab „Gewicht“.</p>
     <div class="sync" id="savestate"></div>
     <div class="sync" id="sync"></div>
   </div>
@@ -649,6 +649,35 @@ const FOODS = [
  [/(tomaten|paradeiser|paprika|gem[üu]se|kr[äa]uter)(aufstrich|creme)/i,"Gemüseaufstrich",180,3,2],
  [/aufstrich/i,"Aufstrich",200,5,2],
  [/porridge/i,"Porridge (fertig)",110,4,2],
+ [/kichererbsenmehl/i,"Kichererbsenmehl",350,22,11],
+ [/linsenmehl/i,"Linsenmehl",340,25,11],
+ [/sojamehl/i,"Sojamehl",440,37,12],
+ [/buchweizenmehl/i,"Buchweizenmehl",350,12,6],
+ [/dinkel(vollkorn)?mehl.*vollkorn|dinkelvollkornmehl/i,"Dinkelvollkornmehl",330,13,9],
+ [/dinkelmehl/i,"Dinkelmehl",340,12,4],
+ [/hafermehl/i,"Hafermehl",370,13,10],
+ [/reismehl/i,"Reismehl",360,7,2],
+ [/kokosmehl/i,"Kokosmehl",350,19,39],
+ [/mandelmehl/i,"Mandelmehl",600,21,12],
+ [/roggen(vollkorn)?mehl/i,"Roggenmehl",300,9,14],
+ [/dinkelbrot|dinkelvollkornbrot|dinkelweckerl|dinkelsemmel/i,"Dinkelbrot",240,9,6,60,{scheibe:50}],
+ [/roggenbrot|schwarzbrot|bauernbrot|sauerteigbrot/i,"Roggenbrot",220,7,7,0,{scheibe:50}],
+ [/pumpernickel/i,"Pumpernickel",190,5,9,0,{scheibe:40}],
+ [/vollkorntoast/i,"Vollkorntoast",250,9,6,0,{scheibe:30}],
+ [/kn[äa]cke/i,"Knäckebrot",340,10,14,10,{scheibe:10}],
+ [/reiswaffel|maiswaffel|puffreis/i,"Reiswaffeln",380,8,3,8,{scheibe:8}],
+ [/cornflakes|corn flakes/i,"Cornflakes",370,7,3],
+ [/granola|knusperm[üu]sli|crunchy/i,"Knuspermüsli",450,9,6],
+ [/m[üu]sli/i,"Müsli ungesüßt",360,10,8],
+ [/dinkelnudeln|dinkel-?nudeln/i,"Dinkelnudeln",350,13,5],
+ [/buchweizen/i,"Buchweizen",345,11,8,0,{cooked:[100,3.4,2.7]}],
+ [/hirse/i,"Hirse",360,11,4,0,{cooked:[120,3.5,1.3]}],
+ [/amaranth/i,"Amaranth",370,14,9,0,{cooked:[105,4,2.5]}],
+ [/gr[üu]nkern/i,"Grünkern",345,11,9,0,{cooked:[120,4,3]}],
+ [/graupen|rollgerste|gerstengraupen/i,"Graupen",350,10,9,0,{cooked:[125,3,3]}],
+ [/polenta|maisgrie[sß]/i,"Polenta",350,8,4,0,{cooked:[75,1.7,0.9]}],
+ [/dinkel/i,"Dinkel (Flocken/Körner)",340,13,9,0,{cooked:[120,4.5,3]}],
+ [/quinoa/i,"Quinoa",360,14,7,0,{cooked:[120,4.4,2.8]}],
  [/eiklar|eiwei(ß|ss)\b/i,"Eiklar",48,11,0,30],
  [/eigelb|dotter/i,"Eigelb",340,16,0,18],
  [/\beier?\b|\bei\b|eier\s*\(/i,"Ei",140,12.5,0,60],
@@ -797,7 +826,7 @@ function gramsFor(food, n, unit, line){
   const u=unit.toLowerCase().replace(".","");
   if(u==="kg"||u==="l") return {g:n*1000};
   if(u==="g"||u==="ml") return {g:n};
-  const dry=/Leinsamen|Chiasamen|Sesam|Kakao|Haferflocken|Haferkleie|Mandeln|kerne|Mehl|Zucker|Stärke/.test(name);
+  const dry=/Leinsamen|Chiasamen|Sesam|Kakao|Haferflocken|Haferkleie|Mandeln|kerne|Mehl|Zucker|Stärke|flocken|Flocken|Buchweizen|Hirse|Amaranth|Quinoa|Dinkel|Müsli|müsli|Grünkern|Graupen|Polenta|Cornflakes/.test(name);
   if(u==="el") return {g:n*(fat||dry?10:/Honig|Sirup/.test(name)?20:15)};
   if(u==="tl") return {g:n*(fat||dry?4:5)};
   if(u.startsWith("prise")||u.startsWith("msp")) return {g:0};
